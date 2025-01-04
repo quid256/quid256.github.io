@@ -163,7 +163,7 @@ const GoalCreationPage = () => {
         </div>
 
         <div class="submit">
-          <button onclick=${() => m.route.set("/render")}>
+          <button onclick=${() => m.route.set("/render-square")}>
             <span class="center-aligned">
               <${Icon}
                 name="file-plus"
@@ -203,7 +203,7 @@ const RenderSquarePage = () => {
 
       return html`
         <div class="render">
-          <button onclick=${() => m.route.set("/home")}>
+          <button onclick=${() => m.route.set("/create-goals")}>
             <span class="center-aligned">
               <${Icon}
                 name="arrow-left"
