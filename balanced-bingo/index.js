@@ -115,7 +115,7 @@ const GoalCreationPage = () => {
 
   return {
     oncreate(vnode) {
-      sortable = Sortable.create(vnode.dom, {
+      sortable = Sortable.create(vnode.dom.querySelector(".entry-container"), {
         handle: ".handle",
         animation: 300,
         onEnd: (evt) => {
@@ -131,13 +131,16 @@ const GoalCreationPage = () => {
 
     view() {
       return html`
-        <div.entry-center>
-          <div.entry-container>
+        <div class="entry-center">
+          <div class="entry-container">
             ${order.map((key, i) => {
               return html`
-                <div.entry key=${key}>
-                  <div.handle style="background-color: ${getBarColor(i)};">
-                    <span.center-aligned>
+                <div class="entry" key=${key}>
+                  <div
+                    class="handle"
+                    style="background-color: ${getBarColor(i)};"
+                  >
+                    <span class="center-aligned">
                       <${Icon}
                         name="move"
                         width="16"
@@ -147,7 +150,7 @@ const GoalCreationPage = () => {
                       <span>(difficulty ${i + 1})</span>
                     </span>
                   </div>
-                  <div.editor-container>
+                  <div class="editor-container">
                     <${EditableField}
                       value=${Data.descriptions[i]}
                       onChange=${(c) => Data.update(i, c)}
@@ -159,9 +162,9 @@ const GoalCreationPage = () => {
           </div>
         </div>
 
-        <div.submit>
+        <div class="submit">
           <button onclick=${() => m.route.set("/render")}>
-            <span.center-aligned>
+            <span class="center-aligned">
               <${Icon}
                 name="file-plus"
                 width="20"
