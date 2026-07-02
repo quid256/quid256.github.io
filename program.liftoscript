@@ -1,0 +1,96 @@
+# Week 1
+## Pull
+T_warmup[1-9] / used: none / 3x10-12 40s / progress: none / warmup: none
+T_lift[1-3] / used: none / 3x10-15 90s / warmup: none/ progress: custom(inc: 5lb) {~
+    var.minWeight = 1000
+    var.repMargin = 0
+    
+    for (var.i in completedReps) {
+        var.repTarget = minReps[var.i] * 0.3 + reps[var.i] * 0.7
+
+        if (completedWeights[var.i] < var.minWeight) {
+          var.minWeight = completedWeights[var.i]
+          var.repMargin = completedReps[var.i] - var.repTarget
+        } else if (completedWeights[var.i] == var.minWeight) {
+          var.repMargin = min(var.repMargin, completedReps[var.i] - var.repTarget)
+        }
+    }
+
+    weights = var.minWeight + (var.repMargin >= 0 ? state.inc : 0)
+~}
+T_lift10[1-3] / used: none / 3x10-15 90s / warmup: none / progress: custom(inc: 10lb) { ...T_lift }
+
+Reverse Crunch, Bodyweight[1-9] / ...T_warmup
+Lat Pulldown, Cable[1-9] / ...T_lift10 / warmup: 1x5 50%, 1x5 70% / 90lb
+/// Lat Underhand Pulldown, Cable[1-9] / ...T_lift10 / 80lb
+Seated Row, Leverage Machine[1-9] / ...T_lift10 / warmup: 1x5 50%, 1x5 70% / 100lb
+/// Bent Over Row, Dumbbell[1-9] / ...T_lift / 30lb
+Bent Over One Arm Row, Dumbbell[1-9] / ...T_lift / 30lb
+Hammer Curl, Dumbbell[1-9] / ...T_lift / 20lb
+Bicep Curl, Dumbbell[1-9] / ...T_lift / 15lb
+
+## Push
+Reverse Crunch, Bodyweight[1-9] / ...T_warmup
+/// Front Raise, Dumbbell[1-9] / ...T_lift / 30s / 30lb
+Incline Bench Press, Dumbbell[1-9] / ...T_lift / warmup: 1x10 50%, 1x5 70% / 40lb
+Bench Press, Dumbbell[1-9] / ...T_lift / 35lb
+Chest Fly, Dumbbell[1-9] / ...T_lift / 20lb
+Arnold Press, Dumbbell[1-9] / ...T_lift / 20lb
+Lateral Raise, Dumbbell[1-9] / ...T_lift / 15lb
+Triceps Extension, Dumbbell[1-9] / ...T_lift / 15lb
+
+## Legs
+Lunge, Bodyweight[1-9] / ...T_warmup
+Single Leg Deadlift, Bodyweight[1-9] / ...T_warmup
+/// Step up, Bodyweight[1-9] / ...T_warmup
+
+Front Squat, Smith Machine[1-9] / ...T_lift10 / warmup: 1x5 50%, 1x5 70% / 100lb
+Seated Leg Press, Leverage Machine[1-9] / ...T_lift10 / 200lb
+Romanian Deadlift, Barbell[1-9] / ...T_lift10 / warmup: 1x5 70% / 60lb
+Step up, Dumbbell[1-9] / ...T_lift / 25lb
+Lunge, Dumbbell[1-9] / ...T_lift / 20lb
+
+# Week 2
+## Pull
+## Push
+## Legs
+
+# Week 3
+## Pull
+## Push
+## Legs
+
+# Week 4
+## Pull
+T_lift[4-7] / 3x8-12
+T_lift10[4-7] / 3x8-12
+## Push
+## Legs
+
+# Week 5
+## Pull
+## Push
+## Legs
+
+# Week 6
+## Pull
+## Push
+## Legs
+
+# Week 7
+## Pull
+## Push
+## Legs
+
+# Week 8
+## Pull
+T_lift[8-9] / 3x6-8
+T_lift10[8-9] / 3x6-8
+## Push
+## Legs
+
+# Week 9
+## Pull
+## Push
+## Legs
+
