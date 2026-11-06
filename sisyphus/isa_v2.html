@@ -1,0 +1,2103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Registers, buses, opcodes, and bus allocations for the ISA v2 8-bit computer.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23191b1f'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='14' font-weight='bold' fill='%23f5f0e6' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E">
+<title>ISA v2 — instruction set reference</title>
+<script>try{const t=localStorage.getItem("isa-theme");document.documentElement.dataset.theme=t||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}catch(e){}</script>
+<style>
+  :root {
+    --paper: #f5f0e6;
+    --paper-2: #ebe4d5;
+    --surface: #fffdf8;
+    --surface-2: #f3ede1;
+    --ink: #191b1f;
+    --ink-2: #413f39;
+    --muted: #6f6a60;
+    --line: #d8cfbe;
+    --line-strong: #b9ad97;
+    --accent: #ab3f13;
+    --accent-2: #0f766e;
+    --code-bg: #ece4d5;
+    --selection: #f4c7a9;
+    --shadow: 0 1px 2px rgba(48, 34, 16, .04), 0 14px 34px rgba(48, 34, 16, .07);
+    --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-body: "Avenir Next", Avenir, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+    --cat-arith-bg: #e5ecfb; --cat-arith-fg: #244a9b;
+    --cat-memory-bg: #dff1e3; --cat-memory-fg: #22613a;
+    --cat-pointer-bg: #f8ebcd; --cat-pointer-fg: #7a5114;
+    --cat-jump-bg: #ebe7fa; --cat-jump-fg: #5438a8;
+    --cat-unary-bg: #fae3e2; --cat-unary-fg: #8f2c2c;
+    --cat-micro-bg: #d9eef0; --cat-micro-fg: #145c65;
+    --cat-misc-bg: #e9e7e1; --cat-misc-fg: #45423b;
+    --cat-reserved-bg: #eee9df; --cat-reserved-fg: #9a9283;
+    --cat-unassigned-bg: #f0ece4; --cat-unassigned-fg: #b3aa9a;
+    --bus-ba: #3066cf; --bus-ba-ink: #fff;
+    --bus-bb: #7048c8; --bus-bb-ink: #fff;
+    --bus-bc: #1483a0; --bus-bc-ink: #fff;
+    --bus-bx: #c45221; --bus-bx-ink: #fff;
+    --bus-by: #a56a11; --bus-by-ink: #fff;
+    --bus-bz: #1b7a5f; --bus-bz-ink: #fff;
+  }
+  [data-theme="dark"] {
+    --paper: #0f1114;
+    --paper-2: #14171c;
+    --surface: #181b20;
+    --surface-2: #1e2229;
+    --ink: #f2ede3;
+    --ink-2: #c2bbae;
+    --muted: #8d887e;
+    --line: #2b3037;
+    --line-strong: #444b55;
+    --accent: #f08a54;
+    --accent-2: #4fd1c5;
+    --code-bg: #242a32;
+    --selection: #5d2f1d;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 18px 40px rgba(0,0,0,.28);
+    --cat-arith-bg: #1b2946; --cat-arith-fg: #9dbbff;
+    --cat-memory-bg: #173027; --cat-memory-fg: #91d9ad;
+    --cat-pointer-bg: #352815; --cat-pointer-fg: #edc477;
+    --cat-jump-bg: #291f45; --cat-jump-fg: #c3b0ff;
+    --cat-unary-bg: #3a2022; --cat-unary-fg: #f3a3a3;
+    --cat-micro-bg: #153138; --cat-micro-fg: #8dd8e2;
+    --cat-misc-bg: #2a2925; --cat-misc-fg: #c7c1b5;
+    --cat-reserved-bg: #252420; --cat-reserved-fg: #7f786c;
+    --cat-unassigned-bg: #201f1c; --cat-unassigned-fg: #69635a;
+    --bus-ba: #5b8cff; --bus-ba-ink: #06122e;
+    --bus-bb: #a682ff; --bus-bb-ink: #12062e;
+    --bus-bc: #48c3df; --bus-bc-ink: #041d24;
+    --bus-bx: #f08a54; --bus-bx-ink: #2d0f03;
+    --bus-by: #e0ae4d; --bus-by-ink: #2a1b02;
+    --bus-bz: #4dc99f; --bus-bz-ink: #042116;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 8%, transparent) 1px, transparent 0);
+    background-size: 24px 24px;
+    opacity: .34;
+  }
+  ::selection { background: var(--selection); color: var(--ink); }
+  a { color: var(--accent-2); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  code, pre, .mono { font-family: var(--font-mono); }
+  code { font-size: .9em; }
+  .skip-link { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 6px; }
+  .skip-link:focus { top: 12px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--paper) 86%, transparent);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(16px);
+  }
+  .topbar-inner {
+    max-width: 1320px; margin: 0 auto; padding: 0 28px;
+    height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-family: var(--font-mono); font-weight: 700; letter-spacing: .04em; }
+  .brand-mark { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--ink); border-radius: 8px; font-size: .8rem; background: var(--surface); }
+  .brand-v { color: var(--accent); }
+  .topnav { display: flex; align-items: center; gap: 22px; font-family: var(--font-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; }
+  .topnav a { color: var(--ink-2); text-decoration: none; }
+  .topnav a:hover { color: var(--accent); }
+  .theme-toggle {
+    appearance: none; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; line-height: 1;
+    display: grid; place-items: center; transition: transform .15s ease, border-color .15s ease;
+  }
+  .theme-toggle:hover { transform: rotate(-12deg); border-color: var(--accent); }
+  .page {
+    position: relative; z-index: 1;
+    max-width: 1320px; margin: 0 auto; padding: 0 28px;
+    display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 58px;
+  }
+  .toc { position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 110px); overflow: auto; padding: 42px 0 30px; }
+  .toc-title { font-family: var(--font-mono); font-size: .62rem; text-transform: uppercase; letter-spacing: .17em; color: var(--muted); margin: 0 0 14px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+  .toc li { margin: 0; }
+  .toc a { display: block; padding: 5px 0 5px 14px; margin-left: -1px; border-left: 2px solid transparent; color: var(--ink-2); text-decoration: none; font-size: .84rem; line-height: 1.35; }
+  .toc a:hover { color: var(--accent); }
+  .toc a.is-active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+  .toc .sub { padding-left: 26px; font-size: .76rem; color: var(--muted); }
+  main { min-width: 0; }
+  .hero { padding: 76px 0 54px; border-bottom: 1px solid var(--line); }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(270px, .7fr); gap: 54px; align-items: end; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin: 0; font-family: var(--font-mono); font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .16em; color: var(--accent); }
+  .eyebrow::before { content: ""; width: 22px; height: 1px; background: currentColor; }
+  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; color: var(--ink); }
+  h1 { margin: 18px 0 22px; font-size: clamp(3.6rem, 7.4vw, 6.6rem); line-height: .88; letter-spacing: -.055em; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .hero-lede { max-width: 62ch; margin: 0; color: var(--ink-2); font-size: clamp(1.02rem, 1.4vw, 1.22rem); line-height: 1.55; }
+  .hero-lede strong { color: var(--ink); font-weight: 600; }
+  .hero-card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 20px 12px; box-shadow: var(--shadow); }
+  .hero-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .hero-card h2 { margin: 2px 0 13px; font-family: var(--font-mono); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .stat { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .stat:first-of-type { border-top: 0; }
+  .stat-label { color: var(--ink-2); font-size: .8rem; }
+  .stat-value { font-family: var(--font-mono); font-size: .78rem; color: var(--ink); text-align: right; }
+  .stat-value b { color: var(--accent); font-size: .94rem; }
+  .section { padding: 78px 0 70px; border-bottom: 1px solid var(--line); }
+  .section:last-of-type { border-bottom: 0; }
+  .section-head { margin-bottom: 30px; }
+  h2 { margin: .35rem 0 .55rem; font-size: clamp(2.15rem, 4vw, 3.45rem); line-height: .98; letter-spacing: -.04em; }
+  h3 { margin: 0 0 .35rem; font-size: clamp(1.35rem, 2.2vw, 1.7rem); line-height: 1.1; letter-spacing: -.02em; }
+  h4 { margin: 0 0 .25rem; font-size: 1rem; letter-spacing: -.01em; }
+  .lede { max-width: 72ch; margin: 0; color: var(--ink-2); font-size: 1.03rem; }
+  .lede + .lede { margin-top: 10px; }
+  .muted { color: var(--muted); }
+  .callout { margin: 22px 0; padding: 15px 18px; border-left: 3px solid var(--accent); border-radius: 0 9px 9px 0; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); color: var(--ink-2); font-size: .92rem; }
+  .callout strong { color: var(--ink); }
+  .callout code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+  .callout.teal { border-left-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 8%, var(--surface)); }
+  .register-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .reg-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 17px 17px 15px; box-shadow: var(--shadow); }
+  .reg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .reg-name { font-family: var(--font-mono); font-size: 1.55rem; font-weight: 700; letter-spacing: -.04em; }
+  .reg-width { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--line)); border-radius: 999px; padding: 2px 7px; white-space: nowrap; }
+  .reg-desc { margin: 3px 0 14px; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+  .byte-strip { display: flex; gap: 3px; }
+  .byte-strip span { flex: 1; height: 11px; border-radius: 2px; background: var(--code-bg); border: 1px solid color-mix(in srgb, var(--line-strong) 60%, transparent); }
+  .byte-strip-16 span { height: 14px; }
+  .nested-regs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+  .nested-reg { min-width: 0; padding: 10px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--surface-2); }
+  .nested-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+  .nested-name { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; letter-spacing: -.03em; color: var(--ink); }
+  .nested-role { font-family: var(--font-mono); font-size: .5rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); white-space: nowrap; }
+  .nested-reg .byte-strip span { height: 9px; }
+  .nested-note { margin: 7px 0 0; font-size: .63rem; color: var(--muted); }
+  .reg-note { margin: 11px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.35; }
+  .flags-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 12px; margin-top: 12px; }
+  .flag-card { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 15px 17px; box-shadow: var(--shadow); }
+  .flag-name { font-family: var(--font-mono); font-size: .78rem; color: var(--ink); }
+  .flag-bits { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .flag-bit { font-family: var(--font-mono); font-size: .65rem; border: 1px solid var(--line-strong); background: var(--surface-2); border-radius: 4px; padding: 2px 6px; color: var(--ink-2); }
+  .flag-bit.c { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent); }
+  .flag-desc { margin: 9px 0 0; font-size: .72rem; color: var(--muted); }
+  .bus-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+  .bus-card { --bus: var(--line-strong); --bus-ink: var(--ink); background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--bus); border-radius: 4px 4px 13px 13px; padding: 17px; box-shadow: var(--shadow); transition: transform .16s ease, box-shadow .16s ease; }
+  .bus-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,.1); }
+  .bus-ba { --bus: var(--bus-ba); --bus-ink: var(--bus-ba-ink); }
+  .bus-bb { --bus: var(--bus-bb); --bus-ink: var(--bus-bb-ink); }
+  .bus-bc { --bus: var(--bus-bc); --bus-ink: var(--bus-bc-ink); }
+  .bus-bx { --bus: var(--bus-bx); --bus-ink: var(--bus-bx-ink); }
+  .bus-by { --bus: var(--bus-by); --bus-ink: var(--bus-by-ink); }
+  .bus-bz { --bus: var(--bus-bz); --bus-ink: var(--bus-bz-ink); }
+  .bus-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .bus-id { font-family: var(--font-mono); font-size: 1.7rem; font-weight: 700; letter-spacing: -.05em; color: var(--bus); }
+  .bus-kind { font-family: var(--font-mono); font-size: .55rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; white-space: nowrap; }
+  .bus-role { margin: 4px 0 14px; font-size: .75rem; color: var(--ink-2); }
+  .flow { margin-top: 8px; }
+  .flow-label { display: block; font-family: var(--font-mono); font-size: .54rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+  .chip-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); font-family: var(--font-mono); font-size: .6rem; color: var(--ink-2); line-height: 1.2; }
+  .chip.bus-chip { background: var(--bus); border-color: var(--bus); color: var(--bus-ink); font-weight: 700; }
+  .chip.arrow { border: 0; background: transparent; padding: 0 1px; color: var(--muted); }
+  .bus-tag { display: inline-flex; align-items: center; justify-content: center; min-width: 27px; padding: 1px 6px; border-radius: 4px; background: var(--bus); color: var(--bus-ink); font-family: var(--font-mono); font-size: .62rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+  .bus-tag.b-ba { --bus: var(--bus-ba); --bus-ink: var(--bus-ba-ink); }
+  .bus-tag.b-bb { --bus: var(--bus-bb); --bus-ink: var(--bus-bb-ink); }
+  .bus-tag.b-bc { --bus: var(--bus-bc); --bus-ink: var(--bus-bc-ink); }
+  .bus-tag.b-bx { --bus: var(--bus-bx); --bus-ink: var(--bus-bx-ink); }
+  .bus-tag.b-by { --bus: var(--bus-by); --bus-ink: var(--bus-by-ink); }
+  .bus-tag.b-bz { --bus: var(--bus-bz); --bus-ink: var(--bus-bz-ink); }
+  .connection-wrap { margin-top: 26px; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
+  .connection-head { padding: 14px 17px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .connection-head h3 { font-family: var(--font-mono); font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .connection-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .connection-table th { text-align: left; padding: 9px 17px; font-family: var(--font-mono); font-size: .57rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .connection-table td { padding: 9px 17px; border-top: 1px solid var(--line); vertical-align: top; }
+  .connection-table tr:first-child td { border-top: 0; }
+  .connection-table td:first-child { width: 23%; color: var(--ink); }
+  .connection-table td:first-child code { color: var(--ink); font-weight: 600; }
+  .dest-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .section-intro { max-width: 75ch; }
+  .notation-panel { margin: 0 0 20px; padding: 17px 18px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+  .notation-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .notation-head h3 { margin: 0; font-family: var(--font-mono); font-size: .6rem; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .notation-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .notation-card { min-width: 0; padding-left: 14px; border-left: 1px solid var(--line); }
+  .notation-card:first-child { padding-left: 0; border-left: 0; }
+  .notation-card h4 { margin: 0 0 6px; font-family: var(--font-mono); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  .notation-card p { margin: 0; font-size: .77rem; line-height: 1.5; color: var(--ink-2); }
+  .notation-small { margin: 7px 0 0; color: var(--muted); font-size: .65rem; line-height: 1.4; }
+  .reg-key { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .reg-key li { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: .64rem; color: var(--ink-2); }
+  .key-num { display: inline-grid; place-items: center; min-width: 20px; padding: 1px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--code-bg); color: var(--accent); font-size: .56rem; }
+  .key-bin { color: var(--muted); font-size: .54rem; }
+  .asm-generic { margin: -4px 0 12px; font-size: .68rem; color: var(--muted); }
+  .asm-generic code { padding: 1px 4px; border-radius: 3px; background: var(--code-bg); color: var(--ink-2); }
+  .opcode-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+  .opcode-panel, .inspector { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+  .opcode-panel { padding: 15px; min-width: 0; }
+  .op-grid-scroll { overflow-x: auto; padding-bottom: 3px; scrollbar-width: thin; }
+  .pan-hint { display: none; margin: 0 0 9px; font-family: var(--font-mono); font-size: .57rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .opcode-grid { display: grid; grid-template-columns: 27px repeat(16, minmax(0, 1fr)); gap: 3px; min-width: 560px; }
+  .op-axis, .op-corner { display: grid; place-items: center; min-height: 22px; font-family: var(--font-mono); font-size: .57rem; color: var(--muted); }
+  .op-corner { font-size: .5rem; letter-spacing: .08em; }
+  .op-cell { appearance: none; border: 1px solid transparent; border-radius: 4px; min-height: 35px; padding: 0 1px; font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: -.04em; cursor: pointer; background: var(--cat-bg); color: var(--cat-fg); transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease; }
+  .op-cell:hover { transform: translateY(-1px); border-color: var(--cat-fg); box-shadow: 0 2px 5px rgba(0,0,0,.15); z-index: 1; }
+  .op-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .op-cell.is-selected { outline: 2px solid var(--ink); outline-offset: 1px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); z-index: 2; }
+  .cat-arith { --cat-bg: var(--cat-arith-bg); --cat-fg: var(--cat-arith-fg); }
+  .cat-memory { --cat-bg: var(--cat-memory-bg); --cat-fg: var(--cat-memory-fg); }
+  .cat-pointer { --cat-bg: var(--cat-pointer-bg); --cat-fg: var(--cat-pointer-fg); }
+  .cat-jump { --cat-bg: var(--cat-jump-bg); --cat-fg: var(--cat-jump-fg); }
+  .cat-unary { --cat-bg: var(--cat-unary-bg); --cat-fg: var(--cat-unary-fg); }
+  .cat-micro { --cat-bg: var(--cat-micro-bg); --cat-fg: var(--cat-micro-fg); }
+  .cat-misc { --cat-bg: var(--cat-misc-bg); --cat-fg: var(--cat-misc-fg); }
+  .cat-reserved { --cat-bg: var(--cat-reserved-bg); --cat-fg: var(--cat-reserved-fg); background-image: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--cat-fg) 14%, transparent) 3px 4px); }
+  .cat-unassigned { --cat-bg: var(--cat-unassigned-bg); --cat-fg: var(--cat-unassigned-fg); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px 3px 4px; background: var(--surface); font-family: var(--font-mono); font-size: .57rem; color: var(--ink-2); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--cat-bg); border: 1px solid var(--cat-fg); }
+  .legend-count { color: var(--muted); }
+  .grid-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .bit-key { font-family: var(--font-mono); font-size: .56rem; color: var(--muted); }
+  .random-btn, .ghost-btn { appearance: none; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); border-radius: 6px; padding: 5px 9px; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+  .random-btn:hover, .ghost-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .inspector { position: sticky; top: 88px; padding: 20px; min-height: 410px; }
+  @media (min-width: 1271px) { .inspector { max-height: calc(100vh - 108px); overflow-y: auto; } }
+  .inspector-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .inspector-op { font-family: var(--font-mono); font-size: 2.1rem; font-weight: 700; line-height: 1; letter-spacing: -.06em; }
+  .inspector-op span { color: var(--muted); font-size: .9rem; letter-spacing: 0; }
+  .inspector-cat { margin-top: 5px; font-family: var(--font-mono); font-size: .57rem; text-transform: uppercase; letter-spacing: .13em; color: var(--cat-fg); }
+  .inspector-mnemonic { font-family: var(--font-mono); font-size: .95rem; font-weight: 700; color: var(--accent); text-align: right; max-width: 150px; overflow-wrap: anywhere; }
+  .bit-strip { display: flex; gap: 3px; margin: 18px 0 15px; }
+  .bit-group { min-width: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-2); padding: 5px 3px 4px; text-align: center; overflow: hidden; }
+  .bit-group.is-field { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+  .bit-val { display: block; font-family: var(--font-mono); font-size: .74rem; letter-spacing: .04em; color: var(--ink); white-space: nowrap; }
+  .bit-label { display: block; margin-top: 2px; font-family: var(--font-mono); font-size: .48rem; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  .asm-large { margin: 0 0 12px; padding: 10px 12px; background: var(--code-bg); border-radius: 7px; font-family: var(--font-mono); font-size: .95rem; color: var(--ink); overflow-wrap: anywhere; }
+  .asm-large b { color: var(--accent-2); }
+  .asm-large i { color: var(--accent); font-style: normal; }
+  .extra-line { display: flex; align-items: flex-start; gap: 7px; margin: 0 0 12px; font-size: .75rem; color: var(--ink-2); }
+  .extra-line .tag { flex: none; font-family: var(--font-mono); font-size: .54rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+  .decode-list { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0 0 14px; font-size: .75rem; }
+  .decode-list dt { font-family: var(--font-mono); color: var(--muted); }
+  .decode-list dd { margin: 0; color: var(--ink-2); }
+  .inspector-note { margin: 0 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .77rem; color: var(--ink-2); line-height: 1.5; }
+  .flow-title { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-family: var(--font-mono); font-size: .57rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .flow-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .route-list { display: grid; gap: 5px; }
+  .route-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); font-size: .68rem; }
+  @keyframes trace-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+  .inspector .route-list .route-row, .inspector .micro-steps li { animation: trace-in .22s ease both; }
+  .inspector .route-list .route-row:nth-child(2), .inspector .micro-steps li:nth-child(2) { animation-delay: .025s; }
+  .inspector .route-list .route-row:nth-child(3), .inspector .micro-steps li:nth-child(3) { animation-delay: .05s; }
+  .inspector .route-list .route-row:nth-child(4), .inspector .micro-steps li:nth-child(4) { animation-delay: .075s; }
+  .inspector .route-list .route-row:nth-child(5), .inspector .micro-steps li:nth-child(5) { animation-delay: .1s; }
+  .inspector .route-list .route-row:nth-child(6) { animation-delay: .125s; }
+  .route-row code { font-size: .64rem; color: var(--ink-2); overflow-wrap: anywhere; }
+  .route-arrow { color: var(--muted); font-size: .68rem; }
+  .route-note { padding: 8px 9px; border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--muted); font-size: .7rem; }
+  .dag-wrap { margin: 4px 0 10px; overflow-x: auto; }
+  .dag-svg { display: block; margin: 0 auto; }
+  .dag-node-box { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1; }
+  .dag-node-title { fill: var(--ink); font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; text-anchor: middle; }
+  .dag-port { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1; }
+  .dag-port-label { fill: var(--ink-2); font-family: var(--font-mono); font-size: 6.2px; text-anchor: middle; }
+  .dag-edge { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  .dag-edge.b-ba { stroke: var(--bus-ba); }
+  .dag-edge.b-bb { stroke: var(--bus-bb); }
+  .dag-edge.b-bc { stroke: var(--bus-bc); }
+  .dag-edge.b-bx { stroke: var(--bus-bx); }
+  .dag-edge.b-by { stroke: var(--bus-by); }
+  .dag-edge.b-bz { stroke: var(--bus-bz); }
+  .dag-tag { fill: var(--line-strong); }
+  .dag-tag.b-ba { fill: var(--bus-ba); }
+  .dag-tag.b-bb { fill: var(--bus-bb); }
+  .dag-tag.b-bc { fill: var(--bus-bc); }
+  .dag-tag.b-bx { fill: var(--bus-bx); }
+  .dag-tag.b-by { fill: var(--bus-by); }
+  .dag-tag.b-bz { fill: var(--bus-bz); }
+  .dag-tag-text { fill: var(--ink); font-family: var(--font-mono); font-size: 6px; font-weight: 700; text-anchor: middle; }
+  .dag-tag-text.b-ba { fill: var(--bus-ba-ink); }
+  .dag-tag-text.b-bb { fill: var(--bus-bb-ink); }
+  .dag-tag-text.b-bc { fill: var(--bus-bc-ink); }
+  .dag-tag-text.b-bx { fill: var(--bus-bx-ink); }
+  .dag-tag-text.b-by { fill: var(--bus-by-ink); }
+  .dag-tag-text.b-bz { fill: var(--bus-bz-ink); }
+  .dag-arrow { fill: var(--line-strong); }
+  .dag-arrow.b-ba { fill: var(--bus-ba); }
+  .dag-arrow.b-bb { fill: var(--bus-bb); }
+  .dag-arrow.b-bc { fill: var(--bus-bc); }
+  .dag-arrow.b-bx { fill: var(--bus-bx); }
+  .dag-arrow.b-by { fill: var(--bus-by); }
+  .dag-arrow.b-bz { fill: var(--bus-bz); }
+  .dag-caption { margin: 0 0 2px; font-size: .66rem; line-height: 1.4; color: var(--muted); }
+  .dag-text { margin-top: 7px; }
+  .dag-text summary { cursor: pointer; font-family: var(--font-mono); font-size: .56rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .dag-text .route-list { margin-top: 7px; }
+  .micro-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .micro-steps li { display: flex; align-items: flex-start; gap: 8px; font-size: .7rem; color: var(--ink-2); }
+  .step-no { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--font-mono); font-size: .56rem; }
+  .micro-steps code { font-size: .66rem; overflow-wrap: anywhere; }
+  .cond-mini { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .62rem; }
+  .cond-mini th, .cond-mini td { padding: 3px 4px; border-top: 1px solid var(--line); text-align: left; }
+  .cond-mini th { border-top: 0; color: var(--muted); font-family: var(--font-mono); font-size: .5rem; text-transform: uppercase; letter-spacing: .07em; }
+  .cond-mini tr.is-current td { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--ink); font-weight: 600; }
+  .empty-state { display: grid; place-items: center; min-height: 360px; text-align: center; color: var(--muted); font-size: .82rem; }
+  .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); font-family: var(--font-display); font-size: 1.3rem; }
+  .ref-block { margin-top: 54px; }
+  .ref-block:first-of-type { margin-top: 22px; }
+  .ref-block h3 { display: flex; align-items: baseline; gap: 10px; }
+  .ref-block h3 .num { font-family: var(--font-mono); font-size: .62rem; color: var(--accent); letter-spacing: .1em; }
+  .ref-block .lede { margin-bottom: 16px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); }
+  table.ref { width: 100%; border-collapse: collapse; min-width: 700px; font-size: .85rem; }
+  table.ref th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); font-family: var(--font-mono); font-size: .54rem; text-transform: uppercase; letter-spacing: .11em; color: var(--muted); font-weight: 600; }
+  table.ref td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  table.ref tbody tr:first-child td { border-top: 0; }
+  table.ref tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  table.ref td:nth-child(1) { white-space: nowrap; }
+  table.ref td:nth-child(2) { white-space: nowrap; }
+  table.ref td.note { color: var(--ink-2); font-size: .8rem; }
+  .bits { display: inline-flex; align-items: baseline; font-family: var(--font-mono); font-size: .8rem; letter-spacing: .02em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; color: var(--ink); }
+  .bits .f { color: var(--accent); font-weight: 700; }
+  .bits .m { color: var(--accent-2); font-weight: 700; }
+  .asm { font-family: var(--font-mono); font-size: .8rem; color: var(--ink); }
+  .asm .mn { color: var(--accent-2); font-weight: 700; }
+  .asm .imm { color: var(--accent); }
+  .asm .reg { color: var(--ink); }
+  .none { color: var(--muted); }
+  .extra { font-family: var(--font-mono); font-size: .76rem; color: var(--ink-2); }
+  .alloc { margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+  .alloc-head { display: flex; align-items: center; gap: 9px; padding: 11px 15px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .alloc-head h4 { margin: 0; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .alloc-head .signal { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .alloc-body { padding: 14px 15px; }
+  .alloc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .alloc-group + .alloc-group { margin-top: 14px; }
+  .alloc-group h5 { margin: 0 0 7px; font-family: var(--font-mono); font-size: .54rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .alloc-cols .alloc-group + .alloc-group { margin-top: 0; }
+  .route-stack { display: grid; gap: 4px; }
+  .alloc-note { margin: 10px 0 0; font-size: .74rem; color: var(--muted); }
+  .micro-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+  .micro-list li { display: flex; gap: 8px; align-items: flex-start; font-size: .78rem; color: var(--ink-2); }
+  .micro-list .step-no { width: 19px; height: 19px; }
+  .micro-list code { font-size: .74rem; }
+  .notes-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 28px; align-items: start; }
+  .note-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+  .note-list li { position: relative; padding-left: 18px; color: var(--ink-2); font-size: .88rem; }
+  .note-list li::before { content: "→"; position: absolute; left: 0; top: 0; color: var(--accent); font-family: var(--font-mono); font-size: .75rem; }
+  .note-list code { background: var(--code-bg); padding: 1px 4px; border-radius: 3px; color: var(--ink); }
+  .cond-wrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
+  .cond-wrap .cond-title { padding: 11px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); font-family: var(--font-mono); font-size: .56rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  table.cond { width: 100%; border-collapse: collapse; font-size: .75rem; }
+  table.cond th { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); font-family: var(--font-mono); font-size: .5rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  table.cond td { padding: 7px 10px; border-top: 1px solid var(--line); color: var(--ink-2); }
+  table.cond td:first-child { font-family: var(--font-mono); color: var(--ink); }
+  table.cond tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ink) 2.5%, transparent); }
+  .cond-note { padding: 10px 14px; border-top: 1px solid var(--line); font-size: .72rem; color: var(--muted); }
+  footer { padding: 34px 0 58px; color: var(--muted); font-size: .75rem; }
+  footer .foot-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+  footer code { color: var(--ink-2); }
+  @media (max-width: 1120px) {
+    .page { grid-template-columns: 180px minmax(0, 1fr); gap: 38px; }
+    .bus-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .notation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .notation-card:nth-child(3) { padding-left: 0; border-left: 0; }
+  }
+  @media (max-width: 1270px) {
+    .opcode-layout { grid-template-columns: minmax(0, 1fr); }
+    .inspector { position: static; max-width: 620px; }
+  }
+  @media (max-width: 940px) {
+    .page { grid-template-columns: minmax(0, 1fr); }
+    .toc { display: none; }
+    .hero-grid { grid-template-columns: 1fr; gap: 30px; }
+    .hero-card { max-width: 560px; }
+    .notes-grid { grid-template-columns: 1fr; }
+    .topnav { display: none; }
+  }
+  @media (max-width: 700px) {
+    .topbar-inner, .page { padding-left: 16px; padding-right: 16px; }
+    .hero { padding-top: 52px; }
+    h1 { font-size: clamp(3.2rem, 16vw, 5rem); }
+    .section { padding: 58px 0 52px; }
+    .register-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flags-grid { grid-template-columns: 1fr; }
+    .bus-grid { grid-template-columns: 1fr; }
+    .notation-grid { grid-template-columns: 1fr; }
+    .notation-card { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+    .notation-card:first-child { border-top: 0; padding-top: 0; }
+    .alloc-cols { grid-template-columns: 1fr; }
+    table.ref { min-width: 680px; }
+    .opcode-grid { min-width: 600px; }
+    .op-cell { min-height: 31px; font-size: 7.2px; }
+    .pan-hint { display: block; }
+    .op-row-axis { position: sticky; left: 0; z-index: 3; background: var(--surface); }
+    .op-corner { position: sticky; left: 0; z-index: 4; background: var(--surface); }
+    .inspector { padding: 16px; }
+    .bit-val { font-size: .65rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; }
+  }
+  @media print {
+    .topbar, .toc, .theme-toggle, .random-btn, .opcode-panel, .inspector, #opcodes { display: none !important; }
+    body { background: #fff; color: #000; }
+    body::before { display: none; }
+    .page { display: block; max-width: none; padding: 0; }
+    .section { break-inside: avoid; }
+    .table-wrap, .alloc, .cond-wrap, .hero-card { box-shadow: none; }
+    a { color: #000; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top" aria-label="ISA v2, back to top">
+      <span class="brand-mark">ISA</span>
+      <span>v2<span class="brand-v">.</span></span>
+    </a>
+    <nav class="topnav" aria-label="Primary">
+      <a href="#registers">Registers</a>
+      <a href="#buses">Buses</a>
+      <a href="#opcodes">Opcodes</a>
+      <a href="#reference">Reference</a>
+      <a href="#notes">Notes</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">◐</button>
+  </div>
+</header>
+
+<div class="page">
+  <aside class="toc" aria-label="Table of contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#top">Overview</a></li>
+      <li><a href="#registers">01 · Register file</a></li>
+      <li><a href="#buses">02 · Buses</a></li>
+      <li><a href="#opcodes">03 · Opcodes</a></li>
+      <li><a href="#reference">04 · Instruction reference</a></li>
+      <li><a class="sub" href="#ref-binary">Binary 8-bit ops</a></li>
+      <li><a class="sub" href="#ref-memory">Memory</a></li>
+      <li><a class="sub" href="#ref-pointer">Pointer arithmetic</a></li>
+      <li><a class="sub" href="#ref-jumps">Jumping</a></li>
+      <li><a class="sub" href="#ref-unary">Unary operations</a></li>
+      <li><a class="sub" href="#ref-micro">Microcoded ops</a></li>
+      <li><a class="sub" href="#ref-misc">Misc</a></li>
+      <li><a href="#notes">05 · Notes &amp; conditions</a></li>
+    </ol>
+  </aside>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">Draft notes · 8-bit computer</p>
+          <h1>Instruction<br>Set <em>v2</em></h1>
+          <p class="hero-lede">
+            A register- and bus-level description of a small computer: four 8-bit data
+            registers, two 16-bit pointers, six buses, and a 256-byte opcode space.
+            The goal is a machine that can run
+            <strong>a decent version of Tetris</strong>.
+          </p>
+        </div>
+        <div class="hero-card" aria-label="Design at a glance">
+          <h2>Quick facts</h2>
+          <div class="stat"><span class="stat-label">Data path</span><span class="stat-value"><b>8</b> bit</span></div>
+          <div class="stat"><span class="stat-label">Pointers</span><span class="stat-value"><b>16</b> bit</span></div>
+          <div class="stat"><span class="stat-label">Buses</span><span class="stat-value"><b>6</b> × 8 bit</span></div>
+          <div class="stat"><span class="stat-label">Opcode space</span><span class="stat-value"><b>256</b> bytes</span></div>
+          <div class="stat"><span class="stat-label">Stack</span><span class="stat-value">0xFFFF, grows <b>↓</b></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="registers">
+      <div class="section-head">
+        <p class="eyebrow">01</p>
+        <h2>Register file</h2>
+        <p class="lede">
+          Four 8-bit working registers, two 16-bit pointers, and a small flag
+          register. <code>RP</code> is formed from <code>RH</code> and <code>RL</code>;
+          <code>SP</code> is a dedicated stack pointer.
+        </p>
+      </div>
+
+      <div class="register-grid">
+        <article class="reg-card">
+          <div class="reg-top"><span class="reg-name">RA</span><span class="reg-width">8 bit</span></div>
+          <p class="reg-desc">Working register</p>
+          <div class="byte-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </article>
+        <article class="reg-card">
+          <div class="reg-top"><span class="reg-name">RB</span><span class="reg-width">8 bit</span></div>
+          <p class="reg-desc">Working register</p>
+          <div class="byte-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </article>
+        <article class="reg-card reg-card-rp">
+          <div class="reg-top"><span class="reg-name">RP</span><span class="reg-width">16 bit</span></div>
+          <p class="reg-desc">Pointer register · <code>RH:RL</code></p>
+          <div class="nested-regs" aria-label="RP is composed of RH as the high byte and RL as the low byte">
+            <div class="nested-reg">
+              <div class="nested-head"><span class="nested-name">RH</span><span class="nested-role">high byte · 8 bit</span></div>
+              <div class="byte-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="nested-note">Working register</p>
+            </div>
+            <div class="nested-reg">
+              <div class="nested-head"><span class="nested-name">RL</span><span class="nested-role">low byte · 8 bit</span></div>
+              <div class="byte-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="nested-note">Working register</p>
+            </div>
+          </div>
+          <p class="reg-note">RH and RL are ordinary working registers too; together they form RP.</p>
+        </article>
+        <article class="reg-card reg-card-sp">
+          <div class="reg-top"><span class="reg-name">SP</span><span class="reg-width">16 bit</span></div>
+          <p class="reg-desc">Stack pointer · special purpose</p>
+          <div class="byte-strip byte-strip-16" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="reg-note">The stack starts at <code>0xFFFF</code> and grows downward.</p>
+        </article>
+      </div>
+
+      <p class="reg-note" style="margin-top:12px;">All flags live in one register.</p>
+      <div class="flags-grid">
+        <article class="flag-card">
+          <div class="reg-top"><span class="flag-name">Carry</span><span class="reg-width">1 bit</span></div>
+          <div class="flag-bits"><span class="flag-bit c">C</span></div>
+          <p class="flag-desc">Carry-out from arithmetic.</p>
+        </article>
+        <article class="flag-card">
+          <div class="reg-top"><span class="flag-name">Comparison flags</span><span class="reg-width">3 bit</span></div>
+          <div class="flag-bits"><span class="flag-bit">Z</span><span class="flag-bit">N</span><span class="flag-bit">V</span></div>
+          <p class="flag-desc">Zero, negative (MSB = 1), and signed overflow (MSB carry-in XOR carry-out).</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="buses">
+      <div class="section-head">
+        <p class="eyebrow">02</p>
+        <h2>Buses</h2>
+        <p class="lede">
+          There are two 8-bit <strong>output buses</strong> (<code>BX</code>,
+          <code>BY</code>) and three 8-bit <strong>input buses</strong>
+          (<code>BA</code>, <code>BB</code>, <code>BC</code>). There is also a
+          weird in-the-middle bus, <code>BZ</code>, connected to the input/output of
+          registers and the input/output of memory. The names describe their role
+          around the ALU and unary unit: <code>BA</code>, <code>BB</code>, and
+          <code>BC</code> feed those units, while <code>BX</code> and <code>BY</code>
+          carry results back out.
+        </p>
+        <p class="lede">
+          A bus here is just an 8-bit value path. The number of buses limits how many
+          independent 8-bit values can move in one clock cycle. Six is enough, for
+          example, to load the value five bytes above the stack pointer into a register
+          in a single cycle. That does not say how fast the ALU itself is; this is only
+          about how much data can move at once.
+        </p>
+      </div>
+
+      <div class="callout">
+        <strong>Why the buses are wired this way.</strong> This describes how data flows between
+        buses. I tried to allocate everything in a way such that everything is not
+        connected to everything else — that should help reduce capacitance / power
+        consumption in the final thing.
+      </div>
+
+      <div class="bus-grid">
+        <article class="bus-card bus-ba">
+          <div class="bus-head"><span class="bus-id">BA</span><span class="bus-kind">input · 8 bit</span></div>
+          <p class="bus-role">ALU input 1</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">Working registers</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">ALU input 1</span></div></div>
+        </article>
+        <article class="bus-card bus-bb">
+          <div class="bus-head"><span class="bus-id">BB</span><span class="bus-kind">input · 8 bit</span></div>
+          <p class="bus-role">ALU input 2</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">imm8</span><span class="chip">Working registers</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">ALU input 2</span></div></div>
+        </article>
+        <article class="bus-card bus-bc">
+          <div class="bus-head"><span class="bus-id">BC</span><span class="bus-kind">input · 8 bit</span></div>
+          <p class="bus-role">Unary input, with a bridge to BX</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">Working registers</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">Unary input</span><span class="chip bus-chip">BX</span></div></div>
+        </article>
+        <article class="bus-card bus-bz">
+          <div class="bus-head"><span class="bus-id">BZ</span><span class="bus-kind">middle · 8 bit</span></div>
+          <p class="bus-role">The register/memory middle bus</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">Working registers</span><span class="chip">PCl</span><span class="chip">PCh</span><span class="chip">ALU output</span><span class="chip">mem out</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">Working registers</span><span class="chip">mem in</span><span class="chip">PCh</span></div></div>
+        </article>
+        <article class="bus-card bus-bx">
+          <div class="bus-head"><span class="bus-id">BX</span><span class="bus-kind">output · 8 bit</span></div>
+          <p class="bus-role">ALU / unary output bus</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">ALU output</span><span class="chip">Unary output</span><span class="chip bus-chip">BC</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">Working registers</span><span class="chip">low(addr)</span><span class="chip">PCl</span></div></div>
+        </article>
+        <article class="bus-card bus-by">
+          <div class="bus-head"><span class="bus-id">BY</span><span class="bus-kind">output · 8 bit</span></div>
+          <p class="bus-role">High address byte</p>
+          <div class="flow"><span class="flow-label">From</span><div class="chip-list"><span class="chip">Unary output</span></div></div>
+          <div class="flow"><span class="flow-label">To</span><div class="chip-list"><span class="chip">high(addr)</span></div></div>
+        </article>
+      </div>
+
+      <div class="callout teal">
+        <strong>Working registers.</strong> The original notes list <code>R8</code>,
+        <code>R16L</code>, and <code>R16H</code> separately, but there are only four
+        8-bit working registers: <code>RA</code>, <code>RB</code>, <code>RL</code>, and
+        <code>RH</code>. <code>R16L</code> and <code>R16H</code> are just <code>RL</code>
+        and <code>RH</code> used as the low and high halves of a pointer.
+        Any working register can drive <code>BA</code>, <code>BB</code>, <code>BC</code>,
+        or <code>BZ</code>, and any working register can be written from <code>BX</code>
+        or <code>BZ</code>.
+      </div>
+
+      <div class="callout teal">
+        <strong>Reading a bus route.</strong> Routes are written
+        <code>source → BUS → destination</code>. For example,
+        <code>working register (dest) → BA → ALU in 1</code> means a working register
+        drives bus <code>BA</code>, which feeds ALU input 1.
+        <code>working register (dest)</code>, <code>working register (src)</code>, and
+        <code>working register (offset)</code> name the working register chosen by the
+        instruction; <code>working register (src) | imm8</code> means either the source
+        register or the immediate byte, depending on the form.
+        <code>PCl</code>/<code>PCh</code> are the low and high bytes of the program
+        counter, and <code>low(addr)</code>/<code>high(addr)</code> are the two bytes of
+        a memory address.
+      </div>
+
+      <div class="connection-wrap">
+        <div class="connection-head"><h3>What’s connected to what</h3></div>
+        <table class="connection-table">
+          <thead><tr><th scope="col">Source</th><th scope="col">Connects to</th></tr></thead>
+          <tbody>
+            <tr><td><code>imm8</code></td><td><div class="dest-chips"><span class="bus-tag b-bb">BB</span></div></td></tr>
+            <tr><td><code>Working registers</code></td><td><div class="dest-chips"><span class="bus-tag b-ba">BA</span><span class="bus-tag b-bb">BB</span><span class="bus-tag b-bc">BC</span><span class="bus-tag b-bz">BZ</span></div></td></tr>
+            <tr><td><code>PCl</code></td><td><div class="dest-chips"><span class="bus-tag b-bz">BZ</span></div></td></tr>
+            <tr><td><code>PCh</code></td><td><div class="dest-chips"><span class="bus-tag b-bz">BZ</span></div></td></tr>
+            <tr><td><code>BA</code></td><td><div class="dest-chips"><span class="chip">ALU input 1</span></div></td></tr>
+            <tr><td><code>BB</code></td><td><div class="dest-chips"><span class="chip">ALU input 2</span></div></td></tr>
+            <tr><td><code>BC</code></td><td><div class="dest-chips"><span class="chip">Unary input</span><span class="bus-tag b-bx">BX</span></div></td></tr>
+            <tr><td><code>ALU output</code></td><td><div class="dest-chips"><span class="bus-tag b-bx">BX</span><span class="bus-tag b-bz">BZ</span></div></td></tr>
+            <tr><td><code>Unary output</code></td><td><div class="dest-chips"><span class="bus-tag b-bx">BX</span><span class="bus-tag b-by">BY</span></div></td></tr>
+            <tr><td><code>mem out</code></td><td><div class="dest-chips"><span class="bus-tag b-bz">BZ</span></div></td></tr>
+            <tr><td><code>BX</code></td><td><div class="dest-chips"><span class="chip">Working registers</span><span class="chip">low(addr)</span><span class="chip">PCl</span></div></td></tr>
+            <tr><td><code>BZ</code></td><td><div class="dest-chips"><span class="chip">Working registers</span><span class="chip">mem in</span><span class="chip">PCh</span></div></td></tr>
+            <tr><td><code>BY</code></td><td><div class="dest-chips"><span class="chip">high(addr)</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="opcodes">
+      <div class="section-head">
+        <p class="eyebrow">03</p>
+        <h2>Opcodes</h2>
+        <p class="lede">
+          Every first byte is shown below, grouped by instruction family. Click any cell
+          to decode its fields, see the concrete assembly form, and trace the buses it
+          uses. The full reference — including the source tables — follows.
+        </p>
+      </div>
+
+      <div class="notation-panel" aria-label="How to read the opcode notation">
+        <div class="notation-head"><span class="eyebrow">Notation</span><h3>How to read this section</h3></div>
+        <div class="notation-grid">
+          <div class="notation-card">
+            <h4>Working registers</h4>
+            <ul class="reg-key">
+              <li><span class="key-num">0</span> RA <span class="key-bin">00</span></li>
+              <li><span class="key-num">1</span> RB <span class="key-bin">01</span></li>
+              <li><span class="key-num">2</span> RL <span class="key-bin">10</span></li>
+              <li><span class="key-num">3</span> RH <span class="key-bin">11</span></li>
+            </ul>
+            <p class="notation-small">The source calls these R8. R16L and R16H are just RL and RH used as pointer halves.</p>
+          </div>
+          <div class="notation-card">
+            <h4>Pointer registers</h4>
+            <ul class="reg-key">
+              <li><span class="key-num">0</span> RP</li>
+              <li><span class="key-num">1</span> SP</li>
+            </ul>
+          </div>
+          <div class="notation-card">
+            <h4>Opcode fields</h4>
+            <p><code>dd</code> selects the destination working register and <code>ss</code> selects the source working register. <code>x</code> selects a pointer. <code>g = 0</code> means unsigned; <code>g = 1</code> means signed. <code>MMMM</code> selects a jump condition; its top bit inverts the result. <code>imm8</code>/<code>imm16</code> are the bytes that follow the opcode.</p>
+          </div>
+          <div class="notation-card">
+            <h4>Bus routes</h4>
+            <p>A route is written <code>source → BUS → destination</code>. For example, <code>working register (dest) → BA → ALU in 1</code> means the destination working register drives bus BA, which feeds ALU input 1.</p>
+          </div>
+        </div>
+      </div>
+
+      <noscript><style>.opcode-layout { display: none; }</style><p class="callout">The interactive opcode map requires JavaScript. The complete written instruction reference follows below.</p></noscript>
+
+      <div class="opcode-layout">
+        <div class="opcode-panel">
+          <div class="legend" id="opcode-legend" aria-label="Opcode categories"></div>
+          <p class="pan-hint">Swipe to pan the 16 × 16 map →</p>
+          <div class="op-grid-scroll">
+            <div class="opcode-grid" id="opcode-grid" role="group" aria-label="Opcode map, rows are the high nibble and columns are the low nibble"></div>
+          </div>
+          <div class="grid-meta">
+            <span class="bit-key">rows = high nibble · columns = low nibble · click to inspect</span>
+            <button class="random-btn" id="random-opcode" type="button">Random opcode</button>
+          </div>
+        </div>
+
+        <aside class="inspector" id="opcode-inspector" aria-live="polite" aria-label="Selected opcode details">
+          <div class="empty-state"><div><strong>Pick a byte</strong>Click any opcode cell to see its encoding and bus activity.</div></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="reference">
+      <div class="section-head">
+        <p class="eyebrow">04</p>
+        <h2>Instruction reference</h2>
+        <p class="lede">
+          The tables, notes, and bus allocations below are reproduced from the source
+          document. Where the notes give a bus allocation, it appears directly beneath
+          the table so the encoding and the data path can be read together.
+        </p>
+        <p class="lede">
+          In the Assembly column, <code>Rd</code> and <code>Rs</code> are placeholders
+          for the working registers selected by <code>dd</code> and <code>ss</code>:
+          RA = 0, RB = 1, RL = 2, RH = 3. <code>Rx</code> is a pointer register:
+          RP = 0, SP = 1. The opcode map above substitutes the actual register names.
+        </p>
+      </div>
+
+      <article class="ref-block" id="ref-binary">
+        <h3><span class="num">4.1</span> Binary 8-bit operations</h3>
+        <p class="lede">Each operation has two forms. When the destination and source fields are different (<code>dd != ss</code>), the source is another working register. When they are equal (<code>dd == ss</code>), the instruction uses an immediate instead, and the next byte supplies its value.</p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">0000</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">ADD</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Add Rs to Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0000</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">ADD</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Add the next byte to Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0001</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">SUB</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Subtract Rs from Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0001</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">SUB</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Subtract the next byte from Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0010</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">CMP</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Compare Rd with Rs; the flags record the result.</td></tr>
+              <tr><td><span class="bits"><span class="f">0010</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">CMP</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Compare Rd with the next byte; the flags record the result.</td></tr>
+              <tr><td><span class="bits"><span class="f">0011</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">AND</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Bitwise AND of Rd and Rs; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0011</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">AND</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Bitwise AND of Rd and the next byte; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0100</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">OR</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Bitwise OR of Rd and Rs; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0100</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">OR</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Bitwise OR of Rd and the next byte; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0101</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">XOR</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Bitwise XOR of Rd and Rs; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0101</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">XOR</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Bitwise XOR of Rd and the next byte; the result is stored in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0110</span>ddss</span> <span class="muted">(dd != ss)</span></td><td><span class="asm"><span class="mn">MOV</span> Rd, Rs</span></td><td><span class="none">—</span></td><td class="note">Copy Rs into Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0110</span>ddss</span> <span class="muted">(dd == ss)</span></td><td><span class="asm"><span class="mn">MOV</span> Rd, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Load the next byte into Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">0111</span>ddss</span></td><td><span class="asm muted">(reserved)</span></td><td><span class="none">—</span></td><td class="note">Unused; this encoding is reserved.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Bus allocation</h4></div>
+          <div class="alloc-body">
+            <div class="route-stack">
+              <div class="route-row"><code>working register (dest)</code><span class="route-arrow">→</span><span class="bus-tag b-ba">BA</span><span class="route-arrow">→</span><code>ALU in 1</code></div>
+              <div class="route-row"><code>working register (src) | imm8</code><span class="route-arrow">→</span><span class="bus-tag b-bb">BB</span><span class="route-arrow">→</span><code>ALU in 2</code></div>
+              <div class="route-row"><code>ALU out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>working register (dest)</code></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-memory">
+        <h3><span class="num">4.2</span> Memory</h3>
+        <p class="lede">Loads and stores add an 8-bit offset to a 16-bit address register. The short form takes the offset from another register; the long form takes an <code>imm8</code>.</p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">1000</span>dd0x</span></td><td><span class="asm"><span class="mn">LD</span> Rd, <span class="reg">[Rx+Rs]</span></span></td><td><span class="extra">000000ss</span></td><td class="note">Load the byte at the address in Rx plus the 8-bit value in Rs, using unsigned addition. Store it in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">1000</span>dd1x</span></td><td><span class="asm"><span class="mn">LD</span> Rd, <span class="reg">[Rx+imm8]</span></span></td><td><span class="extra">imm8</span></td><td class="note">Load the byte at the address in Rx plus the next byte, using unsigned addition. Store it in Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">1001</span>dd0x</span></td><td><span class="asm"><span class="mn">ST</span> <span class="reg">[Rx+Rs]</span>, Rd</span></td><td><span class="extra">000000ss</span></td><td class="note">Store Rd at the address in Rx plus the 8-bit value in Rs, using unsigned addition.</td></tr>
+              <tr><td><span class="bits"><span class="f">1001</span>dd1x</span></td><td><span class="asm"><span class="mn">ST</span> <span class="reg">[Rx+imm8]</span>, Rd</span></td><td><span class="extra">imm8</span></td><td class="note">Store Rd at the address in Rx plus the next byte, using unsigned addition.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <strong>Short memory forms.</strong> The second byte is
+          <code>000000ss</code>: only its low two bits matter, and they select the data
+          register used as the offset.
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Bus allocation</h4></div>
+          <div class="alloc-body">
+            <div class="alloc-cols">
+              <div class="alloc-group">
+                <h5>Read</h5>
+                <div class="route-stack">
+                  <div class="route-row"><code>working register (low byte)</code><span class="route-arrow">→</span><span class="bus-tag b-ba">BA</span><span class="route-arrow">→</span><code>ALU in 1</code></div>
+                  <div class="route-row"><code>working register (offset) | imm8</code><span class="route-arrow">→</span><span class="bus-tag b-bb">BB</span><span class="route-arrow">→</span><code>ALU in 2</code></div>
+                  <div class="route-row"><code>ALU out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>low(addr)</code></div>
+                  <div class="route-row"><code>working register (high byte)</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><code>Unary in</code></div>
+                  <div class="route-row"><code>Unary out</code><span class="route-arrow">→</span><span class="bus-tag b-by">BY</span><span class="route-arrow">→</span><code>high(addr)</code></div>
+                  <div class="route-row"><code>mem out</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>working register (dest)</code></div>
+                </div>
+              </div>
+              <div class="alloc-group">
+                <h5>Write</h5>
+                <div class="route-stack">
+                  <div class="route-row"><code>working register (low byte)</code><span class="route-arrow">→</span><span class="bus-tag b-ba">BA</span><span class="route-arrow">→</span><code>ALU in 1</code></div>
+                  <div class="route-row"><code>working register (offset) | imm8</code><span class="route-arrow">→</span><span class="bus-tag b-bb">BB</span><span class="route-arrow">→</span><code>ALU in 2</code></div>
+                  <div class="route-row"><code>ALU out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>low(addr)</code></div>
+                  <div class="route-row"><code>working register (high byte)</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><code>Unary in</code></div>
+                  <div class="route-row"><code>Unary out</code><span class="route-arrow">→</span><span class="bus-tag b-by">BY</span><span class="route-arrow">→</span><code>high(addr)</code></div>
+                  <div class="route-row"><code>working register (src)</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>mem in</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-pointer">
+        <h3><span class="num">4.3</span> Pointer arithmetic</h3>
+        <p class="lede">These instructions add to, increment, or decrement a 16-bit pointer. The low byte goes through the ALU; the high byte goes through the unary unit.</p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">1010</span>ddgx</span></td><td><span class="asm"><span class="mn">ADD16U/ADD16S</span> Rx, Rd</span></td><td><span class="none">—</span></td><td class="note">Add the 8-bit value in Rd to the pointer Rx. <code>g = 0</code> means unsigned <code>ADD16U</code>; <code>g = 1</code> means signed <code>ADD16S</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">101100</span>gx</span></td><td><span class="asm"><span class="mn">ADD16U/ADD16S</span> Rx, <span class="imm">imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Add the next byte to the pointer Rx. <code>g = 0</code> means unsigned <code>ADD16U</code>; <code>g = 1</code> means signed <code>ADD16S</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">1011010</span>x</span></td><td><span class="asm"><span class="mn">INC16</span></span></td><td><span class="none">—</span></td><td class="note">Add 1 to the pointer selected by <code>x</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">1011011</span>x</span></td><td><span class="asm"><span class="mn">DEC16</span></span></td><td><span class="none">—</span></td><td class="note">Subtract 1 from the pointer selected by <code>x</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">1011100</span>x</span></td><td><span class="asm"><span class="mn">MOV16</span> Rx, R~x</span></td><td><span class="none">—</span></td><td class="note">Copy the other pointer into the pointer selected by <code>x</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">1011101</span>x</span></td><td><span class="asm"><span class="mn">MOV16</span> Rx, <span class="imm">imm16</span></span></td><td><span class="extra">imm16</span></td><td class="note">Load the next two bytes into the pointer selected by <code>x</code>.</td></tr>
+              <tr><td><span class="bits"><span class="f">101111</span>**</span></td><td><span class="asm muted">reserved</span></td><td><span class="none">—</span></td><td class="note">Unused; this encoding is reserved.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <strong>Signed vs unsigned.</strong> <code>g = 0</code> means unsigned
+          <code>ADD16U</code>; <code>g = 1</code> means signed <code>ADD16S</code>.
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Bus allocation</h4></div>
+          <div class="alloc-body">
+            <div class="alloc-group">
+              <h5>ADD16(U | S)</h5>
+              <div class="route-stack">
+                <div class="route-row"><code>working register (low byte, dest)</code><span class="route-arrow">→</span><span class="bus-tag b-ba">BA</span><span class="route-arrow">→</span><code>ALU in 1</code></div>
+                <div class="route-row"><code>working register (offset) | imm8</code><span class="route-arrow">→</span><span class="bus-tag b-bb">BB</span><span class="route-arrow">→</span><code>ALU in 2</code></div>
+                <div class="route-row"><code>ALU out</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>working register (low byte, dest)</code></div>
+                <div class="route-row"><code>working register (high byte)</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><code>Unary in</code></div>
+                <div class="route-row"><code>Unary out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>working register (high byte, dest)</code></div>
+              </div>
+            </div>
+            <div class="alloc-group">
+              <h5>INC16, DEC16</h5>
+              <p class="alloc-note">These reuse the <code>ADD16</code> datapath. The adder input is hard-coded to 1 or −1 instead of coming from a register or immediate.</p>
+            </div>
+            <div class="alloc-group">
+              <h5>MOV16</h5>
+              <div class="route-stack">
+                <div class="route-row"><code>working register (low byte, src)</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>working register (low byte, dest)</code></div>
+                <div class="route-row"><code>working register (high byte, src)</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>working register (high byte, dest)</code></div>
+              </div>
+              <p class="alloc-note">The low byte goes through <code>BZ</code>; the high byte goes through <code>BC</code> and <code>BX</code>.</p>
+            </div>
+            <div class="alloc-group">
+              <h5>MOV16 _, imm</h5>
+              <p class="alloc-note">The low byte loads directly from <code>BZ</code> while the instruction is being fetched. The high byte goes through <code>BC</code> then <code>BX</code>, like the non-immediate <code>MOV16</code>.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-jumps">
+        <h3><span class="num">4.4</span> Jumping</h3>
+        <p class="lede">Absolute and relative jumps share a 4-bit condition selector. The condition table is in the notes at the end of this page.</p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">1100</span>MMMM</span></td><td><span class="asm"><span class="mn">JMP</span> <span class="imm">imm16</span></span></td><td><span class="extra">imm16</span></td><td class="note">Jump to the absolute address in the next two bytes if the condition is true. The condition is encoded in MMMM; see the table in the notes.</td></tr>
+              <tr><td><span class="bits"><span class="f">1101</span>MMMM</span></td><td><span class="asm"><span class="mn">JMP</span> <span class="imm">+imm8</span></span></td><td><span class="extra">imm8</span></td><td class="note">Jump by the signed offset in the next byte if the condition is true. The target is measured from the byte after the offset.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Bus allocation</h4></div>
+          <div class="alloc-body">
+            <div class="alloc-group">
+              <h5>JMP imm16 (conditional)</h5>
+              <div class="route-stack">
+                <div class="route-row"><code>imm16l</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>PCl</code></div>
+                <div class="route-row"><code>imm16h</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>PCh</code></div>
+              </div>
+            </div>
+            <div class="alloc-group">
+              <h5>JMP RP (unconditional)</h5>
+              <div class="route-stack">
+                <div class="route-row"><code>RPl</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>PCl</code></div>
+                <div class="route-row"><code>RPh</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>PCh</code></div>
+              </div>
+            </div>
+            <div class="alloc-group">
+              <h5>JMP +imm8</h5>
+              <div class="route-stack">
+                <div class="route-row"><code>PCl</code><span class="route-arrow">→</span><span class="bus-tag b-ba">BA</span><span class="route-arrow">→</span><code>ALU in 1</code></div>
+                <div class="route-row"><code>imm8</code><span class="route-arrow">→</span><span class="bus-tag b-bb">BB</span><span class="route-arrow">→</span><code>ALU in 2</code></div>
+                <div class="route-row"><code>ALU out</code><span class="route-arrow">→</span><span class="bus-tag b-bz">BZ</span><span class="route-arrow">→</span><code>PCl</code></div>
+                <div class="route-row"><code>PCh</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><code>Unary in</code></div>
+                <div class="route-row"><code>Unary out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>PCh</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-unary">
+        <h3><span class="num">4.5</span> Unary operations</h3>
+        <p class="lede">
+          There is a separate unary unit for one-register operations. It handles shifts,
+          increment, and decrement, and it also supplies the high-byte fix-up for 16-bit
+          addition. The ALU adds the low byte of the pointer to the 8-bit value; the
+          carry output tells the unary unit whether to increment, decrement, or pass the
+          high byte through unchanged.
+        </p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">1110</span>dd00</span></td><td><span class="asm"><span class="mn">SHL</span> Rd</span></td><td><span class="none">—</span></td><td class="note">Shift Rd left by one bit.</td></tr>
+              <tr><td><span class="bits"><span class="f">1110</span>dd01</span></td><td><span class="asm"><span class="mn">SHR</span> Rd</span></td><td><span class="none">—</span></td><td class="note">Shift Rd right by one bit.</td></tr>
+              <tr><td><span class="bits"><span class="f">1110</span>dd10</span></td><td><span class="asm"><span class="mn">INC</span> Rd</span></td><td><span class="none">—</span></td><td class="note">Add 1 to Rd.</td></tr>
+              <tr><td><span class="bits"><span class="f">1110</span>dd11</span></td><td><span class="asm"><span class="mn">DEC</span> Rd</span></td><td><span class="none">—</span></td><td class="note">Subtract 1 from Rd.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Bus allocation</h4></div>
+          <div class="alloc-body">
+            <div class="route-stack">
+              <div class="route-row"><code>working register (dest)</code><span class="route-arrow">→</span><span class="bus-tag b-bc">BC</span><span class="route-arrow">→</span><code>Unary in</code></div>
+              <div class="route-row"><code>Unary out</code><span class="route-arrow">→</span><span class="bus-tag b-bx">BX</span><span class="route-arrow">→</span><code>working register (dest)</code></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-micro">
+        <h3><span class="num">4.6</span> Microcoded ops</h3>
+        <p class="lede">
+          These take several clock cycles and are implemented as short sequences of
+          simpler operations. They do not use the working registers as scratch
+          space, which keeps function calls simple.
+        </p>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">111100</span>ss</span></td><td><span class="asm"><span class="mn">PUSH</span> Rs</span></td><td><span class="none">—</span></td><td class="note">Push Rs onto the stack: decrement SP first, then write the register value at SP.</td></tr>
+              <tr><td><span class="bits"><span class="f">111101</span>ss</span></td><td><span class="asm"><span class="mn">POP</span> Rs</span></td><td><span class="none">—</span></td><td class="note">Pop the value at SP into Rs, then increment SP.</td></tr>
+              <tr><td><span class="bits"><span class="f">11111000</span></span></td><td><span class="asm"><span class="mn">CALL</span> <span class="imm">imm16</span></span></td><td><span class="extra">imm16</span></td><td class="note">Call a function: push the return address (the PC after this instruction) onto the stack, then jump to imm16.</td></tr>
+              <tr><td><span class="bits"><span class="f">11111001</span></span></td><td><span class="asm"><span class="mn">RET</span></span></td><td><span class="none">—</span></td><td class="note">Return from a function: pop the saved PC from the stack and jump to it.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alloc">
+          <div class="alloc-head"><span class="signal"></span><h4>Microcode sequences</h4></div>
+          <div class="alloc-body">
+            <div class="alloc-cols">
+              <div class="alloc-group">
+                <h5>PUSH</h5>
+                <ol class="micro-list">
+                  <li><span class="step-no">1</span><code>DEC16 SP</code></li>
+                  <li><span class="step-no">2</span><code>ST [SP], working register (src)</code></li>
+                </ol>
+              </div>
+              <div class="alloc-group">
+                <h5>POP</h5>
+                <ol class="micro-list">
+                  <li><span class="step-no">1</span><code>LD working register (dest), [SP]</code></li>
+                  <li><span class="step-no">2</span><code>INC16 SP</code></li>
+                </ol>
+              </div>
+              <div class="alloc-group">
+                <h5>RET</h5>
+                <ol class="micro-list">
+                  <li><span class="step-no">1</span><code>LD imm16h, [SP]</code> <span class="muted">(feasible, imm16h is connected to BZ)</span></li>
+                  <li><span class="step-no">2</span><code>INC16 SP</code></li>
+                  <li><span class="step-no">3</span><code>LD imm16l, [SP]</code> <span class="muted">(feasible, imm16l is connected to BZ)</span></li>
+                  <li><span class="step-no">4</span><code>INC16 SP</code></li>
+                  <li><span class="step-no">5</span><code>JMP imm16</code> <span class="muted">(unconditional)</span></li>
+                </ol>
+              </div>
+              <div class="alloc-group">
+                <h5>CALL</h5>
+                <ol class="micro-list">
+                  <li><span class="step-no">1</span><code>INC16 SP</code></li>
+                  <li><span class="step-no">2</span><code>ST [SP], PCl</code></li>
+                  <li><span class="step-no">3</span><code>INC16 SP</code></li>
+                  <li><span class="step-no">4</span><code>ST [SP], PCh</code></li>
+                  <li><span class="step-no">5</span><code>JMP imm16</code></li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ref-block" id="ref-misc">
+        <h3><span class="num">4.7</span> Misc</h3>
+        <div class="table-wrap">
+          <table class="ref">
+            <thead><tr><th scope="col">Opcode</th><th scope="col">Assembly</th><th scope="col">Additional</th><th scope="col">Notes</th></tr></thead>
+            <tbody>
+              <tr><td><span class="bits"><span class="f">11111010</span></span></td><td><span class="asm"><span class="mn">JMP RP</span></span></td><td><span class="none">—</span></td><td class="note">Jump to the address in RP, unconditionally.</td></tr>
+              <tr><td><span class="bits"><span class="f">11111011</span></span></td><td><span class="asm"><span class="mn">CARRY</span></span></td><td><span class="none">—</span></td><td class="note">Use the carry flag for the next instruction.</td></tr>
+              <tr><td><span class="bits"><span class="f">11111110</span></span></td><td><span class="asm"><span class="mn">HALT</span></span></td><td><span class="none">—</span></td><td class="note">Stop execution.</td></tr>
+              <tr><td><span class="bits"><span class="f">11111111</span></span></td><td><span class="asm"><span class="mn">NOP</span></span></td><td><span class="none">—</span></td><td class="note">No-op.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="alloc-note">The source table does not assign <code>11111100</code> or <code>11111101</code>.</p>
+      </article>
+    </section>
+
+    <section class="section" id="notes">
+      <div class="section-head">
+        <p class="eyebrow">05</p>
+        <h2>Notes &amp; conditions</h2>
+        <p class="lede">
+          Naming conventions, stack behavior, and the condition encoding used by every
+          jump. These are the details that make the tables above unambiguous.
+        </p>
+      </div>
+
+      <div class="notes-grid">
+        <div>
+          <ul class="note-list">
+            <li><code>Rd</code> and <code>Rs</code> are placeholders for 8-bit working registers. The 2-bit <code>dd</code>/<code>ss</code> fields select them as 00 = RA, 01 = RB, 10 = RL, 11 = RH. <code>R16L</code> and <code>R16H</code> are just RL and RH used as pointer halves.</li>
+            <li><code>Rx</code> is a 16-bit pointer register. The 1-bit <code>x</code> field selects 0 = RP or 1 = SP.</li>
+            <li>The stack starts at <code>0xFFFF</code> and grows downward.</li>
+            <li><code>PUSH</code> decrements SP, then writes the value to the stack in one operation.</li>
+            <li><code>CALL</code> pushes the low byte of the return address first, then the high byte.</li>
+            <li>In a <code>JMP</code>, <code>MMMM</code> is one inversion bit followed by three condition bits. The flags are C (carry-out), Z (zero), N (MSB = 1), and V (signed overflow, MSB carry-in XOR carry-out).</li>
+            <li>Relative <code>JMP +</code> offsets are measured from the address <em>after</em> the <code>imm8</code> byte has been fetched.</li>
+          </ul>
+          <div class="callout teal" style="margin-top:22px;">
+            <strong>Reading MMMM.</strong> The table below describes the lower three
+            condition bits. The top bit of <code>MMMM</code> is the inversion bit:
+            <code>I&nbsp;=&nbsp;0</code> uses the output as written, and
+            <code>I&nbsp;=&nbsp;1</code> inverts it. Thus <code>0000</code> is never and
+            <code>1000</code> is always.
+          </div>
+        </div>
+        <div class="cond-wrap">
+          <div class="cond-title">Condition encoding · MMM</div>
+          <table class="cond">
+            <thead><tr><th scope="col">MMM</th><th scope="col">Output</th><th scope="col">Result condition</th><th scope="col">CMP condition</th></tr></thead>
+            <tbody>
+              <tr><td>000</td><td>0</td><td>—</td><td>—</td></tr>
+              <tr><td>001</td><td>~Z</td><td>result != 0</td><td>A != B</td></tr>
+              <tr><td>010</td><td>C</td><td>carry-out/no-borrow</td><td>A &gt;= B (unsigned)</td></tr>
+              <tr><td>011</td><td>C &amp; ~Z</td><td>—</td><td>A &gt; B (unsigned)</td></tr>
+              <tr><td>100</td><td>N</td><td>result &lt; 0</td><td>—</td></tr>
+              <tr><td>101</td><td>V</td><td>signed overflow</td><td>—</td></tr>
+              <tr><td>110</td><td>N ^ V</td><td>—</td><td>A &lt; B (signed)</td></tr>
+              <tr><td>111</td><td>Z | (N ^ V)</td><td>—</td><td>A &lt;= B (signed)</td></tr>
+            </tbody>
+          </table>
+          <div class="cond-note">Rows reproduced from the source notes. <code>A</code> and <code>B</code> are the two compared values. In the output column, <code>~</code> is NOT, <code>&amp;</code> is AND, <code>|</code> is OR, and <code>^</code> is XOR. The inversion bit applies to the whole output expression.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="foot-line">
+        <span>ISA v2 · draft notes</span>
+        <span>Source: <code>isa_v2.txt</code> · Interactive map and bus inspector added for this edition</span>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const hex = (n) => n.toString(16).toUpperCase().padStart(2, "0");
+  const bin = (n, len = 8) => n.toString(2).padStart(len, "0");
+
+  /* ---------- theme ---------- */
+  const root = document.documentElement;
+  const themeButton = $("#theme-toggle");
+  const storedTheme = (() => { try { return localStorage.getItem("isa-theme"); } catch { return null; } })();
+  const setTheme = (theme) => {
+    root.dataset.theme = theme;
+    themeButton.textContent = theme === "dark" ? "☀" : "☾";
+    const label = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+    themeButton.setAttribute("aria-label", label);
+    themeButton.title = label;
+    try { localStorage.setItem("isa-theme", theme); } catch { /* ignore */ }
+  };
+  setTheme(storedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  themeButton.addEventListener("click", () => {
+    setTheme(root.dataset.theme === "dark" ? "light" : "dark");
+  });
+
+  /* ---------- table of contents ---------- */
+  const tocLinks = $$(".toc a");
+  const sections = $$("main section[id]");
+  if ("IntersectionObserver" in window) {
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const id = entry.target.id;
+        tocLinks.forEach((a) => a.classList.toggle("is-active", a.getAttribute("href") === "#" + id));
+      });
+    }, { rootMargin: "-18% 0px -68% 0px", threshold: 0 });
+    sections.forEach((section) => tocObserver.observe(section));
+  }
+
+  /* ---------- bus colours ---------- */
+  const BUS = {
+    BA: { label: "BA", cls: "b-ba" },
+    BB: { label: "BB", cls: "b-bb" },
+    BC: { label: "BC", cls: "b-bc" },
+    BX: { label: "BX", cls: "b-bx" },
+    BY: { label: "BY", cls: "b-by" },
+    BZ: { label: "BZ", cls: "b-bz" },
+  };
+  const busTag = (name) => `<span class="bus-tag ${BUS[name] ? BUS[name].cls : ""}">${name}</span>`;
+
+  /* ---------- route data ---------- */
+  const low = (ptr) => `low(${ptr})`;
+  const high = (ptr) => `high(${ptr})`;
+
+  const arithmeticRoutes = (dest, src) => [
+    { from: dest, bus: "BA", to: "ALU in 1" },
+    { from: src, bus: "BB", to: "ALU in 2" },
+    { from: "ALU out", bus: "BX", to: dest },
+  ];
+
+  const memoryRoutes = (dest, ptr, mode, load) => {
+    const offset = mode ? "imm8" : "Rs";
+    const routes = [
+      { from: low(ptr), bus: "BA", to: "ALU in 1" },
+      { from: offset, bus: "BB", to: "ALU in 2" },
+      { from: "ALU out", bus: "BX", to: "low(addr)" },
+      { from: high(ptr), bus: "BC", to: "Unary in" },
+      { from: "Unary out", bus: "BY", to: "high(addr)" },
+    ];
+    routes.push(load
+      ? { from: "mem out", bus: "BZ", to: dest }
+      : { from: dest, bus: "BZ", to: "mem in" });
+    return routes;
+  };
+
+  const add16Routes = (ptr, src) => [
+    { from: low(ptr), bus: "BA", to: "ALU in 1" },
+    { from: src, bus: "BB", to: "ALU in 2" },
+    { from: "ALU out", bus: "BZ", to: low(ptr) },
+    { from: high(ptr), bus: "BC", to: "Unary in" },
+    { from: "Unary out", bus: "BX", to: high(ptr) },
+  ];
+
+  const incdecRoutes = (ptr, amount) => add16Routes(ptr, `constant ${amount}`);
+
+  const mov16Routes = (dest, src) => [
+    { from: low(src), bus: "BZ", to: low(dest) },
+    { from: high(src), bus: "BC", via: "BX", to: high(dest) },
+  ];
+
+  const mov16ImmRoutes = (dest) => [
+    { from: "imm16 low", bus: "BZ", to: low(dest) },
+    { from: "imm16 high", bus: "BC", via: "BX", to: high(dest) },
+  ];
+
+  const jmpImm16Routes = [
+    { from: "imm16 low", bus: "BZ", to: "PCl" },
+    { from: "imm16 high", bus: "BC", via: "BX", to: "PCh" },
+  ];
+
+  const jmpRPRoutes = [
+    { from: low("RP"), bus: "BZ", to: "PCl" },
+    { from: high("RP"), bus: "BC", via: "BX", to: "PCh" },
+  ];
+
+  const jmpRelRoutes = [
+    { from: "PCl", bus: "BA", to: "ALU in 1" },
+    { from: "imm8", bus: "BB", to: "ALU in 2" },
+    { from: "ALU out", bus: "BZ", to: "PCl" },
+    { from: "PCh", bus: "BC", to: "Unary in" },
+    { from: "Unary out", bus: "BX", to: "PCh" },
+  ];
+
+  const unaryRoutes = (dest) => [
+    { from: dest, bus: "BC", to: "Unary in" },
+    { from: "Unary out", bus: "BX", to: dest },
+  ];
+
+  const CONDITIONS = [
+    { m: "000", out: "0", result: "—", cmp: "—" },
+    { m: "001", out: "~Z", result: "result != 0", cmp: "A != B" },
+    { m: "010", out: "C", result: "carry-out/no-borrow", cmp: "A >= B (unsigned)" },
+    { m: "011", out: "C & ~Z", result: "—", cmp: "A > B (unsigned)" },
+    { m: "100", out: "N", result: "result < 0", cmp: "—" },
+    { m: "101", out: "V", result: "signed overflow", cmp: "—" },
+    { m: "110", out: "N^V", result: "—", cmp: "A < B (signed)" },
+    { m: "111", out: "Z|(N^V)", result: "—", cmp: "A <= B (signed)" },
+  ];
+
+  const EFFECTIVE = {
+    "0": ["never", "always"],
+    "~Z": ["not zero / not equal", "zero / equal"],
+    "C": ["carry-out / no-borrow", "no carry-out / borrow"],
+    "C & ~Z": ["A > B (unsigned)", "A <= B (unsigned)"],
+    "N": ["negative", "nonnegative"],
+    "V": ["signed overflow", "no signed overflow"],
+    "N^V": ["A < B (signed)", "A >= B (signed)"],
+    "Z|(N^V)": ["A <= B (signed)", "A > B (signed)"],
+  };
+
+  const CATS = {
+    arith: { label: "Binary 8-bit" },
+    memory: { label: "Memory" },
+    pointer: { label: "Pointer" },
+    jump: { label: "Jump" },
+    unary: { label: "Unary" },
+    micro: { label: "Microcoded" },
+    misc: { label: "Misc" },
+    reserved: { label: "Reserved" },
+    unassigned: { label: "Unassigned" },
+  };
+
+  const ARITH = ["ADD", "SUB", "CMP", "AND", "OR", "XOR", "MOV"];
+  const DATA_REGS = ["RA", "RB", "RL", "RH"];
+  const PTR_REGS = ["RP", "SP"];
+
+  /* ---------- decode ---------- */
+  function decodeOpcode(op) {
+    const b = bin(op);
+    const base = {
+      op,
+      cat: "unassigned",
+      catLabel: CATS.unassigned.label,
+      short: "—",
+      mnemonic: "unassigned",
+      asm: "Unassigned",
+      genericAsm: null,
+      extra: "—",
+      note: "This byte is not assigned by the source document.",
+      fields: [],
+      decoded: [],
+      routes: [],
+      sequence: [],
+      condition: null,
+    };
+
+    if (op >= 0x70 && op <= 0x7f) {
+      return { ...base, cat: "reserved", catLabel: CATS.reserved.label, short: "RSVD", mnemonic: "reserved", asm: "(reserved)", note: "Reserved in the binary 8-bit operation block." };
+    }
+    if (op >= 0xbc && op <= 0xbf) {
+      return { ...base, cat: "reserved", catLabel: CATS.reserved.label, short: "RSVD", mnemonic: "reserved", asm: "reserved", note: "Reserved in the pointer-arithmetic block (101111**)." };
+    }
+    if (op === 0xfc || op === 0xfd) {
+      return { ...base, note: "Unassigned: the source table does not list this byte." };
+    }
+
+    if (op <= 0x6f) {
+      const mnemonic = ARITH[op >> 4];
+      const dd = (op >> 2) & 3;
+      const ss = op & 3;
+      const immediate = dd === ss;
+      const dest = DATA_REGS[dd];
+      const src = immediate ? "imm8" : DATA_REGS[ss];
+      return {
+        ...base,
+        cat: "arith",
+        catLabel: CATS.arith.label,
+        short: mnemonic,
+        mnemonic,
+        asm: immediate ? `${mnemonic} ${dest}, imm8` : `${mnemonic} ${dest}, ${src}`,
+        genericAsm: immediate ? `${mnemonic} Rd, imm8` : `${mnemonic} Rd, Rs`,
+        extra: immediate ? "imm8 · 1 byte" : "—",
+        note: immediate
+          ? "The two register fields are equal, so this is the immediate form. The next byte supplies the immediate value."
+          : `The destination is ${dest} and the source is ${src}.`,
+        fields: [
+          { text: b.slice(0, 4), label: "op", field: false },
+          { text: b.slice(4, 6), label: "dd", field: true },
+          { text: b.slice(6, 8), label: "ss", field: true },
+        ],
+        decoded: [
+          ["dd", `${dd} · destination ${dest}`],
+          ["ss", `${ss} · ${immediate ? "selects the immediate form" : `source ${src}`}`],
+        ],
+        routes: arithmeticRoutes(dest, src),
+      };
+    }
+
+    if (op >= 0x80 && op <= 0x9f) {
+      const load = op < 0x90;
+      const dd = (op >> 2) & 3;
+      const mode = (op >> 1) & 1;
+      const x = op & 1;
+      const mnemonic = load ? "LD" : "ST";
+      const dest = DATA_REGS[dd];
+      const ptr = PTR_REGS[x];
+      const offset = mode ? "imm8" : "Rs";
+      const asm = load
+        ? `LD ${dest}, [${ptr}+${offset}]`
+        : `ST [${ptr}+${offset}], ${dest}`;
+      const genericAsm = load
+        ? `LD Rd, [Rx+${offset}]`
+        : `ST [Rx+${offset}], Rd`;
+      return {
+        ...base,
+        cat: "memory",
+        catLabel: CATS.memory.label,
+        short: mnemonic,
+        mnemonic,
+        asm,
+        genericAsm,
+        extra: mode ? "imm8 · 1 byte" : "000000ss · 1 byte",
+        note: mode
+          ? `The next byte is added to ${ptr} (unsigned) to form the address.`
+          : "The second byte supplies the register offset; only its low two bits are used.",
+        fields: [
+          { text: b.slice(0, 4), label: "op", field: false },
+          { text: b.slice(4, 6), label: "dd", field: true },
+          { text: b.slice(6, 7), label: "mode", field: true },
+          { text: b.slice(7, 8), label: "x", field: true },
+        ],
+        decoded: [
+          ["dd", `${dd} · ${dest}`],
+          ["mode", `${mode} · ${mode ? "immediate offset (imm8)" : "register offset (Rs)"}`],
+          ["x", `${x} · ${ptr}`],
+        ],
+        routes: memoryRoutes(dest, ptr, mode, load),
+      };
+    }
+
+    if (op >= 0xa0 && op <= 0xaf) {
+      const dd = (op >> 2) & 3;
+      const g = (op >> 1) & 1;
+      const x = op & 1;
+      const variant = g === 1 ? "ADD16S" : "ADD16U";
+      const signed = g === 1 ? "signed" : "unsigned";
+      return {
+        ...base,
+        cat: "pointer",
+        catLabel: CATS.pointer.label,
+        short: "ADD16",
+        mnemonic: variant,
+        asm: `${variant} ${PTR_REGS[x]}, ${DATA_REGS[dd]}`,
+        genericAsm: `${variant} Rx, Rd`,
+        extra: "—",
+        note: `Add the 8-bit value in ${DATA_REGS[dd]} to the pointer ${PTR_REGS[x]} using ${signed} addition.`,
+        fields: [
+          { text: b.slice(0, 4), label: "op", field: false },
+          { text: b.slice(4, 6), label: "dd", field: true },
+          { text: b.slice(6, 7), label: "g", field: true },
+          { text: b.slice(7, 8), label: "x", field: true },
+        ],
+        decoded: [
+          ["dd", `${dd} · source ${DATA_REGS[dd]}`],
+          ["g", `${g} · ${signed} (${variant})`],
+          ["x", `${x} · destination ${PTR_REGS[x]}`],
+        ],
+        routes: add16Routes(PTR_REGS[x], DATA_REGS[dd]),
+      };
+    }
+
+    if (op >= 0xb0 && op <= 0xbf) {
+      if (op <= 0xb3) {
+        const g = (op >> 1) & 1;
+        const x = op & 1;
+        const variant = g === 1 ? "ADD16S" : "ADD16U";
+        const signed = g === 1 ? "signed" : "unsigned";
+        return {
+          ...base,
+          cat: "pointer", catLabel: CATS.pointer.label, short: "ADD16", mnemonic: variant,
+          asm: `${variant} ${PTR_REGS[x]}, imm8`, genericAsm: `${variant} Rx, imm8`, extra: "imm8 · 1 byte",
+          note: `Add the next byte to the pointer ${PTR_REGS[x]} using ${signed} addition.`,
+          fields: [
+            { text: b.slice(0, 6), label: "op", field: false },
+            { text: b.slice(6, 7), label: "g", field: true },
+            { text: b.slice(7, 8), label: "x", field: true },
+          ],
+          decoded: [["g", `${g} · ${signed} (${variant})`], ["x", `${x} · destination ${PTR_REGS[x]}`]],
+          routes: add16Routes(PTR_REGS[x], "imm8"),
+        };
+      }
+      if (op === 0xb4 || op === 0xb5) {
+        const x = op & 1;
+        return {
+          ...base,
+          cat: "pointer", catLabel: CATS.pointer.label, short: "INC16", mnemonic: "INC16",
+          asm: `INC16 ${PTR_REGS[x]}`, genericAsm: "INC16 Rx", extra: "—", note: `Add 1 to ${PTR_REGS[x]} by reusing the ADD16 datapath, with the adder input hard-coded to 1.`,
+          fields: [{ text: b.slice(0, 7), label: "op", field: false }, { text: b.slice(7, 8), label: "x", field: true }],
+          decoded: [["x", `${x} · ${PTR_REGS[x]}`]],
+          routes: incdecRoutes(PTR_REGS[x], 1),
+        };
+      }
+      if (op === 0xb6 || op === 0xb7) {
+        const x = op & 1;
+        return {
+          ...base,
+          cat: "pointer", catLabel: CATS.pointer.label, short: "DEC16", mnemonic: "DEC16",
+          asm: `DEC16 ${PTR_REGS[x]}`, genericAsm: "DEC16 Rx", extra: "—", note: `Subtract 1 from ${PTR_REGS[x]} by reusing the ADD16 datapath, with the adder input hard-coded to −1.`,
+          fields: [{ text: b.slice(0, 7), label: "op", field: false }, { text: b.slice(7, 8), label: "x", field: true }],
+          decoded: [["x", `${x} · ${PTR_REGS[x]}`]],
+          routes: incdecRoutes(PTR_REGS[x], -1),
+        };
+      }
+      if (op === 0xb8 || op === 0xb9) {
+        const x = op & 1;
+        return {
+          ...base,
+          cat: "pointer", catLabel: CATS.pointer.label, short: "MOV16", mnemonic: "MOV16",
+          asm: `MOV16 ${PTR_REGS[x]}, ${PTR_REGS[1 - x]}`, genericAsm: "MOV16 Rx, R~x", extra: "—", note: `Copy ${PTR_REGS[1 - x]} into ${PTR_REGS[x]}. The low byte goes through BZ; the high byte goes through BC and BX.`,
+          fields: [{ text: b.slice(0, 7), label: "op", field: false }, { text: b.slice(7, 8), label: "x", field: true }],
+          decoded: [["x", `${x} · destination ${PTR_REGS[x]}; source ${PTR_REGS[1 - x]}`]],
+          routes: mov16Routes(PTR_REGS[x], PTR_REGS[1 - x]),
+        };
+      }
+      if (op === 0xba || op === 0xbb) {
+        const x = op & 1;
+        return {
+          ...base,
+          cat: "pointer", catLabel: CATS.pointer.label, short: "MOV16", mnemonic: "MOV16",
+          asm: `MOV16 ${PTR_REGS[x]}, imm16`, genericAsm: "MOV16 Rx, imm16", extra: "imm16 · 2 bytes",
+          note: `Load the next two bytes into ${PTR_REGS[x]}. The low byte is loaded from BZ while the instruction is being fetched; the high byte goes through BC then BX.`,
+          fields: [{ text: b.slice(0, 7), label: "op", field: false }, { text: b.slice(7, 8), label: "x", field: true }],
+          decoded: [["x", `${x} · destination ${PTR_REGS[x]}`], ["imm16", "two following bytes"]],
+          routes: mov16ImmRoutes(PTR_REGS[x]),
+        };
+      }
+    }
+
+    if (op >= 0xc0 && op <= 0xdf) {
+      const relative = op >= 0xd0;
+      const mmmm = op & 0xf;
+      const inv = (mmmm >> 3) & 1;
+      const mmm = mmmm & 7;
+      const cond = CONDITIONS[mmm];
+      const effective = inv ? `NOT(${cond.out})` : cond.out;
+      const effectiveLabel = (EFFECTIVE[cond.out] || ["", ""])[inv ? 1 : 0];
+      return {
+        ...base,
+        cat: "jump",
+        catLabel: CATS.jump.label,
+        short: relative ? "JMP+" : "JMP",
+        mnemonic: "JMP",
+        asm: relative ? "JMP +imm8" : "JMP imm16",
+        extra: relative ? "imm8 · 1 byte" : "imm16 · 2 bytes",
+        note: relative
+          ? "Conditional relative jump. The signed offset is relative to the address after the imm8 byte has been fetched."
+          : "Conditional absolute jump. MMMM selects the condition (see the condition table).",
+        fields: [
+          { text: b.slice(0, 4), label: "op", field: false },
+          { text: b.slice(4, 8), label: "MMMM", field: true },
+        ],
+        decoded: [
+          ["MMMM", `${bin(mmmm, 4)} · inversion=${inv}, MMM=${mmm}`],
+          ["MMM", `${cond.m} · output ${cond.out}`],
+          ["effective", `${effective} · ${effectiveLabel}`],
+        ],
+        routes: relative ? jmpRelRoutes : jmpImm16Routes,
+        condition: { mmmm, inv, mmm, row: cond, effective, effectiveLabel },
+      };
+    }
+
+    if (op >= 0xe0 && op <= 0xef) {
+      const dd = (op >> 2) & 3;
+      const xx = op & 3;
+      const names = ["SHL", "SHR", "INC", "DEC"];
+      const mnemonic = names[xx];
+      const dest = DATA_REGS[dd];
+      const descriptions = [
+        `Shift ${dest} left by one bit.`,
+        `Shift ${dest} right by one bit.`,
+        `Add 1 to ${dest}.`,
+        `Subtract 1 from ${dest}.`,
+      ];
+      return {
+        ...base,
+        cat: "unary",
+        catLabel: CATS.unary.label,
+        short: mnemonic,
+        mnemonic,
+        asm: `${mnemonic} ${dest}`,
+        genericAsm: `${mnemonic} Rd`,
+        extra: "—",
+        note: descriptions[xx],
+        fields: [
+          { text: b.slice(0, 4), label: "op", field: false },
+          { text: b.slice(4, 6), label: "dd", field: true },
+          { text: b.slice(6, 8), label: "XX", field: true },
+        ],
+        decoded: [["dd", `${dd} · ${dest}`], ["XX", `${xx} · ${mnemonic}`]],
+        routes: unaryRoutes(dest),
+      };
+    }
+
+    if (op >= 0xf0 && op <= 0xf3) {
+      const ss = op & 3;
+      const reg = DATA_REGS[ss];
+      return {
+        ...base,
+        cat: "micro", catLabel: CATS.micro.label, short: "PUSH", mnemonic: "PUSH", asm: `PUSH ${reg}`, genericAsm: "PUSH Rs", extra: "—",
+        note: `Push ${reg} onto the stack: decrement SP first, then write the register value at SP.`,
+        fields: [{ text: b.slice(0, 6), label: "op", field: false }, { text: b.slice(6, 8), label: "ss", field: true }],
+        decoded: [["ss", `${ss} · ${reg}`]],
+        sequence: ["DEC16 SP", `ST [SP], ${reg}`],
+      };
+    }
+    if (op >= 0xf4 && op <= 0xf7) {
+      const ss = op & 3;
+      const reg = DATA_REGS[ss];
+      return {
+        ...base,
+        cat: "micro", catLabel: CATS.micro.label, short: "POP", mnemonic: "POP", asm: `POP ${reg}`, genericAsm: "POP Rs", extra: "—",
+        note: `Pop the value at SP into ${reg}, then increment SP.`,
+        fields: [{ text: b.slice(0, 6), label: "op", field: false }, { text: b.slice(6, 8), label: "ss", field: true }],
+        decoded: [["ss", `${ss} · ${reg}`]],
+        sequence: [`LD ${reg}, [SP]`, "INC16 SP"],
+      };
+    }
+    if (op === 0xf8) {
+      return {
+        ...base,
+        cat: "micro", catLabel: CATS.micro.label, short: "CALL", mnemonic: "CALL", asm: "CALL imm16", extra: "imm16 · 2 bytes",
+        note: "Function call: push the PC after the instruction to the stack, then jump.",
+        fields: [{ text: b, label: "op", field: false }],
+        decoded: [["imm16", "two following bytes"]],
+        sequence: ["INC16 SP", "ST [SP], PCl", "INC16 SP", "ST [SP], PCh", "JMP imm16"],
+      };
+    }
+    if (op === 0xf9) {
+      return {
+        ...base,
+        cat: "micro", catLabel: CATS.micro.label, short: "RET", mnemonic: "RET", asm: "RET", extra: "—",
+        note: "Function return: pop the former PC from the stack and jump to it.",
+        fields: [{ text: b, label: "op", field: false }],
+        sequence: ["LD imm16h, [SP]", "INC16 SP", "LD imm16l, [SP]", "INC16 SP", "JMP imm16"],
+      };
+    }
+    if (op === 0xfa) {
+      return {
+        ...base,
+        cat: "misc", catLabel: CATS.misc.label, short: "JMPRP", mnemonic: "JMP RP", asm: "JMP RP", extra: "—",
+        note: "Jump to the address in RP, unconditionally.",
+        fields: [{ text: b, label: "op", field: false }],
+        routes: jmpRPRoutes,
+      };
+    }
+    if (op === 0xfb) {
+      return {
+        ...base,
+        cat: "misc", catLabel: CATS.misc.label, short: "CARRY", mnemonic: "CARRY", asm: "CARRY", extra: "—",
+        note: "Use the carry flag for the next instruction.",
+        fields: [{ text: b, label: "op", field: false }],
+      };
+    }
+    if (op === 0xfe) {
+      return {
+        ...base,
+        cat: "misc", catLabel: CATS.misc.label, short: "HALT", mnemonic: "HALT", asm: "HALT", extra: "—",
+        note: "Stop execution.",
+        fields: [{ text: b, label: "op", field: false }],
+      };
+    }
+    if (op === 0xff) {
+      return {
+        ...base,
+        cat: "misc", catLabel: CATS.misc.label, short: "NOP", mnemonic: "NOP", asm: "NOP", extra: "—",
+        note: "No-op.",
+        fields: [{ text: b, label: "op", field: false }],
+      };
+    }
+
+    return base;
+  }
+
+  /* ---------- render helpers ---------- */
+  const renderFields = (fields) => fields.map((f) => {
+    const flex = Math.max(1, f.text.length) * 10;
+    return `<div class="bit-group${f.field ? " is-field" : ""}" style="flex:${flex} 1 0"><span class="bit-val">${f.text}</span><span class="bit-label">${f.label}</span></div>`;
+  }).join("");
+
+  const renderRoute = (r) => {
+    const via = r.via ? `<span class="route-arrow">→</span>${busTag(r.via)}` : "";
+    return `<div class="route-row"><code>${r.from}</code><span class="route-arrow">→</span>${busTag(r.bus)}${via}<span class="route-arrow">→</span><code>${r.to}</code></div>`;
+  };
+
+  const renderSequence = (seq) => `<ol class="micro-steps">${seq.map((step, i) => `<li><span class="step-no">${i + 1}</span><code>${step}</code></li>`).join("")}</ol>`;
+
+  const renderConditionTable = (selected) => {
+    const rows = CONDITIONS.map((row, i) => `<tr class="${i === selected ? "is-current" : ""}"><td>${row.m}</td><td>${row.out}</td><td>${row.result}</td><td>${row.cmp}</td></tr>`).join("");
+    return `<table class="cond-mini"><thead><tr><th>MMM</th><th>Output</th><th>Result</th><th>CMP</th></tr></thead><tbody>${rows}</tbody></table>`;
+  };
+
+  /* ---------- data-flow DAG ----------
+     Route objects are the source of truth. The renderer maps each route's
+     endpoints to named node/port pairs, layers the node graph, and draws it.
+     New routes adapt automatically; new hardware only needs a small model entry. */
+  const DAG_NODES = {
+    regRead: { title: "Registers (read)", rank: 0 },
+    pcRead: { title: "PC (read)", rank: 1 },
+    instruction: { title: "Instruction", rank: 2 },
+    constant: { title: "Constant", rank: 3 },
+    alu: { title: "ALU", rank: 4 },
+    unary: { title: "Unary", rank: 5 },
+    memory: { title: "Memory", rank: 6 },
+    regWrite: { title: "Registers (write)", rank: 7 },
+    pcWrite: { title: "PC (write)", rank: 8 },
+    other: { title: "Other", rank: 9 },
+  };
+
+  const PORT_ORDER = {
+    regRead: ["RA", "RB", "RL", "RH", "SPlo", "SPhi", "Rs"],
+    regWrite: ["RA", "RB", "RL", "RH", "SPlo", "SPhi", "Rs"],
+    pcRead: ["PCl", "PCh"],
+    pcWrite: ["PCl", "PCh"],
+    instruction: ["imm8", "imm16lo", "imm16hi"],
+    constant: ["1", "-1"],
+    alu: ["in1", "in2", "out"],
+    unary: ["in", "out"],
+    memory: ["addrlo", "addrhi", "datain", "dataout"],
+    other: [],
+  };
+
+  const REG_ENDPOINTS = {
+    RA: { port: "RA", label: "RA" },
+    RB: { port: "RB", label: "RB" },
+    RL: { port: "RL", label: "RL/RPlo" },
+    RH: { port: "RH", label: "RH/RPhi" },
+    "low(RP)": { port: "RL", label: "RL/RPlo" },
+    "high(RP)": { port: "RH", label: "RH/RPhi" },
+    "low(SP)": { port: "SPlo", label: "SPlo" },
+    "high(SP)": { port: "SPhi", label: "SPhi" },
+    Rs: { port: "Rs", label: "Rs" },
+  };
+
+  const classifySource = (label) => {
+    if (REG_ENDPOINTS[label]) return { node: "regRead", ...REG_ENDPOINTS[label] };
+    if (label === "PCl" || label === "PCh") return { node: "pcRead", port: label, label };
+    if (label === "imm8") return { node: "instruction", port: "imm8", label: "imm8" };
+    if (label === "imm16 low") return { node: "instruction", port: "imm16lo", label: "imm16lo" };
+    if (label === "imm16 high") return { node: "instruction", port: "imm16hi", label: "imm16hi" };
+    if (label === "constant 1") return { node: "constant", port: "1", label: "1" };
+    if (label === "constant -1") return { node: "constant", port: "-1", label: "-1" };
+    if (label === "ALU out") return { node: "alu", port: "out", label: "out" };
+    if (label === "Unary out") return { node: "unary", port: "out", label: "out" };
+    if (label === "mem out") return { node: "memory", port: "dataout", label: "data out" };
+    return { node: "other", port: `out:${label}`, label };
+  };
+
+  const classifyDest = (label) => {
+    if (REG_ENDPOINTS[label]) return { node: "regWrite", ...REG_ENDPOINTS[label] };
+    if (label === "PCl" || label === "PCh") return { node: "pcWrite", port: label, label };
+    if (label === "ALU in 1") return { node: "alu", port: "in1", label: "in1" };
+    if (label === "ALU in 2") return { node: "alu", port: "in2", label: "in2" };
+    if (label === "Unary in") return { node: "unary", port: "in", label: "in" };
+    if (label === "low(addr)") return { node: "memory", port: "addrlo", label: "addr lo" };
+    if (label === "high(addr)") return { node: "memory", port: "addrhi", label: "addr hi" };
+    if (label === "mem in") return { node: "memory", port: "datain", label: "data in" };
+    return { node: "other", port: `in:${label}`, label };
+  };
+
+  const XML_ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const escapeXml = (value) => String(value).replace(/[&<>"']/g, (c) => XML_ESCAPES[c]);
+  const dagBusClass = (name) => BUS[name]?.cls || "";
+  const markerAttr = (name) => BUS[name] ? ` marker-end="url(#dag-arrow-${name})"` : "";
+
+  const cubicPoint = ([p0, p1, p2, p3], t) => {
+    const u = 1 - t;
+    return [
+      u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
+      u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1],
+    ];
+  };
+
+  const cubicPath = ([p0, p1, p2, p3]) =>
+    `M ${p0[0]} ${p0[1]} C ${p1[0]} ${p1[1]}, ${p2[0]} ${p2[1]}, ${p3[0]} ${p3[1]}`;
+
+  const midPoint = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const splitCubic = (p0, p1, p2, p3) => {
+    const p01 = midPoint(p0, p1);
+    const p12 = midPoint(p1, p2);
+    const p23 = midPoint(p2, p3);
+    const p012 = midPoint(p01, p12);
+    const p123 = midPoint(p12, p23);
+    const mid = midPoint(p012, p123);
+    return [[p0, p01, p012, mid], [mid, p123, p23, p3]];
+  };
+
+  const busSvgTag = (name, x, y) => {
+    const label = String(name);
+    const width = label.length * 4.3 + 8;
+    const cls = dagBusClass(name);
+    return `<g><rect class="dag-tag ${cls}" x="${x - width / 2}" y="${y - 6}" width="${width}" height="12" rx="3"/><text class="dag-tag-text ${cls}" x="${x}" y="${y + 2.2}">${escapeXml(label)}</text></g>`;
+  };
+
+  const renderDag = (routes) => {
+    const nodes = new Map();
+    const edges = [];
+    const nodeEdges = new Set();
+
+    const ensureNode = (id) => {
+      if (!nodes.has(id)) {
+        nodes.set(id, {
+          id,
+          title: DAG_NODES[id]?.title || id,
+          rank: DAG_NODES[id]?.rank ?? 99,
+          ports: new Map(),
+        });
+      }
+      return nodes.get(id);
+    };
+
+    for (const route of routes) {
+      const source = classifySource(route.from);
+      const target = classifyDest(route.to);
+      if (!source || !target) continue;
+      ensureNode(source.node).ports.set(`out:${source.port}`, { id: source.port, label: source.label, direction: "out" });
+      ensureNode(target.node).ports.set(`in:${target.port}`, { id: target.port, label: target.label, direction: "in" });
+      edges.push({
+        ...route,
+        sourceNode: source.node,
+        sourcePort: `out:${source.port}`,
+        targetNode: target.node,
+        targetPort: `in:${target.port}`,
+      });
+      nodeEdges.add(`${source.node}->${target.node}`);
+    }
+
+    if (!nodes.size) return "";
+
+    const ids = [...nodes.keys()];
+    const adjacency = new Map(ids.map((id) => [id, []]));
+    const indegree = new Map(ids.map((id) => [id, 0]));
+    for (const key of nodeEdges) {
+      const [from, to] = key.split("->");
+      adjacency.get(from).push(to);
+      indegree.set(to, indegree.get(to) + 1);
+    }
+
+    const layer = new Map(ids.map((id) => [id, 0]));
+    const queue = ids.filter((id) => indegree.get(id) === 0);
+    const seen = new Set();
+    while (queue.length) {
+      const id = queue.shift();
+      seen.add(id);
+      for (const next of adjacency.get(id)) {
+        layer.set(next, Math.max(layer.get(next), layer.get(id) + 1));
+        indegree.set(next, indegree.get(next) - 1);
+        if (indegree.get(next) === 0) queue.push(next);
+      }
+    }
+    const fallbackLayer = Math.max(0, ...ids.map((id) => layer.get(id) || 0));
+    ids.forEach((id) => { if (!seen.has(id)) layer.set(id, fallbackLayer + 1); });
+
+    const usedLayers = [...new Set(ids.map((id) => layer.get(id)))].sort((a, b) => a - b);
+    const rows = usedLayers.map((index) =>
+      ids.filter((id) => layer.get(id) === index)
+        .map((id) => nodes.get(id))
+        .sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title))
+    );
+
+    const portsOf = (node) => [...node.ports.values()];
+    const nodeWidth = (node) => {
+      const ports = portsOf(node);
+      const maxPorts = Math.max(
+        ports.filter((p) => p.direction === "in").length,
+        ports.filter((p) => p.direction === "out").length,
+        1
+      );
+      const maxLabel = Math.max(3, ...ports.map((p) => p.label.length));
+      return Math.max(132, 24 + maxPorts * 30, 20 + maxLabel * 4.3);
+    };
+
+    const nodeHeight = 74;
+    const hGap = 10;
+    const vGap = 36;
+    const margin = 10;
+    const rowWidths = rows.map((row) =>
+      row.reduce((sum, node) => sum + nodeWidth(node), 0) + hGap * (row.length - 1)
+    );
+    const hasLongEdge = edges.some((edge) =>
+      !edge.via && (layer.get(edge.targetNode) - layer.get(edge.sourceNode)) > 1
+    );
+    const lanePad = hasLongEdge ? 22 : 0;
+    const svgWidth = Math.max(300, Math.max(...rowWidths) + margin * 2 + lanePad * 2);
+    const layout = new Map();
+    let y = margin;
+    rows.forEach((row, rowIndex) => {
+      let x = (svgWidth - rowWidths[rowIndex]) / 2;
+      row.forEach((node) => {
+        const width = nodeWidth(node);
+        layout.set(node.id, { x, y, width, height: nodeHeight, ports: new Map() });
+        x += width + hGap;
+      });
+      y += nodeHeight + vGap;
+    });
+    const svgHeight = y - vGap + margin;
+
+    const orderIndex = (node, port) => {
+      const order = PORT_ORDER[node.id] || [];
+      const index = order.indexOf(port.id);
+      return index === -1 ? 999 : index;
+    };
+
+    for (const node of nodes.values()) {
+      const box = layout.get(node.id);
+      const ports = portsOf(node);
+      const ins = ports.filter((p) => p.direction === "in")
+        .sort((a, b) => orderIndex(node, a) - orderIndex(node, b) || a.label.localeCompare(b.label));
+      const outs = ports.filter((p) => p.direction === "out")
+        .sort((a, b) => orderIndex(node, a) - orderIndex(node, b) || a.label.localeCompare(b.label));
+      ins.forEach((port, index) => {
+        const px = box.x + box.width * (index + 1) / (ins.length + 1);
+        box.ports.set(`in:${port.id}`, { x: px, y: box.y, label: port.label });
+      });
+      outs.forEach((port, index) => {
+        const px = box.x + box.width * (index + 1) / (outs.length + 1);
+        box.ports.set(`out:${port.id}`, { x: px, y: box.y + box.height, label: port.label });
+      });
+    }
+
+    const nodeSvg = [];
+    for (const node of nodes.values()) {
+      const box = layout.get(node.id);
+      const ports = portsOf(node);
+      const ins = ports.filter((p) => p.direction === "in")
+        .sort((a, b) => orderIndex(node, a) - orderIndex(node, b) || a.label.localeCompare(b.label));
+      const outs = ports.filter((p) => p.direction === "out")
+        .sort((a, b) => orderIndex(node, a) - orderIndex(node, b) || a.label.localeCompare(b.label));
+      nodeSvg.push(`<g class="dag-node"><title>${escapeXml(node.title)}</title>`);
+      nodeSvg.push(`<rect class="dag-node-box" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="7"/>`);
+      nodeSvg.push(`<text class="dag-node-title" x="${box.x + box.width / 2}" y="${box.y + 13}">${escapeXml(node.title)}</text>`);
+      for (const port of ins) {
+        const pos = box.ports.get(`in:${port.id}`);
+        nodeSvg.push(`<g><title>${escapeXml(node.title)}: ${escapeXml(port.label)}</title><circle class="dag-port" cx="${pos.x}" cy="${pos.y}" r="3"/><text class="dag-port-label" x="${pos.x}" y="${box.y + 24}">${escapeXml(port.label)}</text></g>`);
+      }
+      for (const port of outs) {
+        const pos = box.ports.get(`out:${port.id}`);
+        nodeSvg.push(`<g><title>${escapeXml(node.title)}: ${escapeXml(port.label)}</title><circle class="dag-port" cx="${pos.x}" cy="${pos.y}" r="3"/><text class="dag-port-label" x="${pos.x}" y="${box.y + box.height - 8}">${escapeXml(port.label)}</text></g>`);
+      }
+      nodeSvg.push("</g>");
+    }
+
+    const markerDefs = Object.entries(BUS).map(([name, info]) =>
+      `<marker id="dag-arrow-${name}" viewBox="0 0 7 7" refX="5.5" refY="3.5" markerWidth="6" markerHeight="6" orient="auto"><path class="dag-arrow ${info.cls}" d="M0,0 L7,3.5 L0,7 Z"/></marker>`
+    ).join("");
+
+    const edgeSvg = [];
+    const tagSpecs = [];
+    for (const edge of edges) {
+      const sourceBox = layout.get(edge.sourceNode);
+      const targetBox = layout.get(edge.targetNode);
+      const source = sourceBox?.ports.get(edge.sourcePort);
+      const target = targetBox?.ports.get(edge.targetPort);
+      if (!source || !target) continue;
+      const p0 = [source.x, source.y];
+      const p3 = [target.x, target.y - 4];
+      const dy = Math.max(18, (p3[1] - p0[1]) * 0.45);
+      const p1 = [p0[0], p0[1] + dy];
+      const p2 = [p3[0], p3[1] - dy];
+      const title = `${edge.from} → ${edge.bus}${edge.via ? ` → ${edge.via}` : ""} → ${edge.to}`;
+      const longEdge = !edge.via && (layer.get(edge.targetNode) - layer.get(edge.sourceNode)) > 1;
+      if (longEdge) {
+        const laneX = p0[0] < svgWidth / 2 ? 10 : svgWidth - 10;
+        const yStart = p0[1] + 14;
+        const yEnd = p3[1] - 14;
+        const points = [p0, [p0[0], yStart], [laneX, yStart], [laneX, yEnd], [p3[0], yEnd], p3];
+        const d = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point[0]} ${point[1]}`).join(" ");
+        edgeSvg.push(`<g><title>${escapeXml(title)}</title><path class="dag-edge ${dagBusClass(edge.bus)}" d="${d}"${markerAttr(edge.bus)}/></g>`);
+        tagSpecs.push({ name: edge.bus, point: [laneX, (yStart + yEnd) / 2] });
+      } else if (edge.via) {
+        const [first, second] = splitCubic(p0, p1, p2, p3);
+        edgeSvg.push(`<g><title>${escapeXml(title)}</title><path class="dag-edge ${dagBusClass(edge.bus)}" d="${cubicPath(first)}"/><path class="dag-edge ${dagBusClass(edge.via)}" d="${cubicPath(second)}"${markerAttr(edge.via)}/></g>`);
+        tagSpecs.push({ name: edge.bus, curve: first });
+        tagSpecs.push({ name: edge.via, curve: second });
+      } else {
+        const curve = [p0, p1, p2, p3];
+        edgeSvg.push(`<g><title>${escapeXml(title)}</title><path class="dag-edge ${dagBusClass(edge.bus)}" d="${cubicPath(curve)}"${markerAttr(edge.bus)}/></g>`);
+        tagSpecs.push({ name: edge.bus, curve });
+      }
+    }
+
+    const placedTags = [];
+    const tagWidth = (name) => String(name).length * 4.3 + 8;
+    const tagRect = (name, x, y) => ({ x: x - tagWidth(name) / 2 - 2, y: y - 8, w: tagWidth(name) + 4, h: 16 });
+    const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const tagCandidates = [0.5, 0.4, 0.6, 0.32, 0.68, 0.24, 0.76, 0.18, 0.82];
+    for (const spec of tagSpecs) {
+      const candidates = spec.point
+        ? [spec.point, [spec.point[0], spec.point[1] + 14], [spec.point[0], spec.point[1] - 14], [spec.point[0], spec.point[1] + 28], [spec.point[0], spec.point[1] - 28]]
+        : tagCandidates.map((t) => cubicPoint(spec.curve, t));
+      let chosen = null;
+      for (const point of candidates) {
+        const rect = tagRect(spec.name, point[0], point[1]);
+        if (!placedTags.some((tag) => overlaps(rect, tag.rect))) {
+          chosen = { point, rect };
+          break;
+        }
+      }
+      if (!chosen) {
+        const point = candidates[0];
+        chosen = { point, rect: tagRect(spec.name, point[0], point[1]) };
+      }
+      placedTags.push({ ...spec, ...chosen });
+    }
+    const tagSvg = placedTags.map((tag) => busSvgTag(tag.name, tag.point[0], tag.point[1])).join("");
+
+    return `<div class="dag-wrap"><svg class="dag-svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Data-flow graph for this instruction"><defs>${markerDefs}</defs>${edgeSvg.join("")}${tagSvg}${nodeSvg.join("")}</svg></div>`;
+  };
+
+  const renderInspector = (info) => {
+    const fieldHtml = info.fields.length ? `<div class="bit-strip">${renderFields(info.fields)}</div>` : "";
+    const decoded = info.decoded.length
+      ? `<dl class="decode-list">${info.decoded.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`
+      : "";
+    const generic = info.genericAsm && info.genericAsm !== info.asm
+      ? `<div class="asm-generic">Generic form: <code>${info.genericAsm}</code></div>`
+      : "";
+    const cond = info.condition
+      ? `<div class="inspector-note"><strong>Condition:</strong> ${info.condition.effective} · ${info.condition.effectiveLabel}. Top bit is the inversion bit; lower three bits are MMM.</div>${renderConditionTable(info.condition.mmm)}`
+      : "";
+    const textRoutes = info.routes.map(renderRoute).join("");
+    const dag = info.routes.length ? renderDag(info.routes) : "";
+    const routes = info.routes.length
+      ? `<div class="flow-title">Bus activity</div><p class="dag-caption">Edges are labelled with the bus they use; arrowheads show the direction.</p>${dag || `<div class="route-list">${textRoutes}</div>`}<details class="dag-text"><summary>Text form</summary><div class="route-list">${textRoutes}</div></details>`
+      : info.sequence.length
+        ? `<div class="flow-title">Microcode sequence</div>${renderSequence(info.sequence)}<p class="inspector-note">Each step uses the bus allocation of the primitive it names.</p>`
+        : `<div class="flow-title">Bus activity</div><div class="route-note">No bus allocation is listed for this opcode in the source notes.</div>`;
+
+    return `
+      <div class="inspector-top">
+        <div>
+          <div class="inspector-op">0x${hex(info.op)} <span>/ ${info.op}</span></div>
+          <div class="inspector-cat cat-${info.cat}">${info.catLabel}</div>
+        </div>
+        <div class="inspector-mnemonic">${info.mnemonic}</div>
+      </div>
+      ${fieldHtml}
+      <div class="asm-large">${info.asm}</div>
+      ${generic}
+      <div class="extra-line"><span class="tag">Additional</span><span>${info.extra}</span></div>
+      ${routes}
+      ${decoded}
+      <p class="inspector-note">${info.note}</p>
+      ${cond}
+    `;
+  };
+
+  /* ---------- opcode grid ---------- */
+  const grid = $("#opcode-grid");
+  const inspector = $("#opcode-inspector");
+  let selectedOp = 0;
+
+  const selectOpcode = (op, doScroll = false) => {
+    selectedOp = op;
+    $$(".op-cell", grid).forEach((cell) => {
+      const isSelected = Number(cell.dataset.op) === op;
+      cell.classList.toggle("is-selected", isSelected);
+      cell.setAttribute("aria-pressed", String(isSelected));
+    });
+    inspector.innerHTML = renderInspector(decodeOpcode(op));
+    if (doScroll && window.innerWidth < 940) {
+      inspector.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  };
+
+  const buildGrid = () => {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(Object.assign(document.createElement("div"), { className: "op-corner", textContent: "hi/lo" }));
+    for (let lo = 0; lo < 16; lo++) {
+      const d = document.createElement("div");
+      d.className = "op-axis";
+      d.textContent = lo.toString(16).toUpperCase();
+      frag.appendChild(d);
+    }
+    for (let hi = 0; hi < 16; hi++) {
+      const row = document.createElement("div");
+      row.className = "op-axis op-row-axis";
+      row.textContent = hi.toString(16).toUpperCase();
+      frag.appendChild(row);
+      for (let lo = 0; lo < 16; lo++) {
+        const op = hi * 16 + lo;
+        const info = decodeOpcode(op);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `op-cell cat-${info.cat}`;
+        button.dataset.op = String(op);
+        button.textContent = info.short;
+        button.title = `0x${hex(op)} · ${info.asm}`;
+        button.setAttribute("aria-label", `0x${hex(op)}: ${info.asm}`);
+        button.addEventListener("click", () => selectOpcode(op, true));
+        frag.appendChild(button);
+      }
+    }
+    grid.appendChild(frag);
+  };
+
+  buildGrid();
+
+  /* legend with live counts */
+  const counts = {};
+  for (let op = 0; op < 256; op++) {
+    const c = decodeOpcode(op).cat;
+    counts[c] = (counts[c] || 0) + 1;
+  }
+  $("#opcode-legend").innerHTML = Object.entries(CATS).map(([key, cat]) => {
+    const n = counts[key] || 0;
+    return `<span class="legend-item"><span class="legend-swatch cat-${key}"></span>${cat.label} <span class="legend-count">${n}</span></span>`;
+  }).join("");
+
+  selectOpcode(0x00);
+  $("#random-opcode").addEventListener("click", () => {
+    selectOpcode(Math.floor(Math.random() * 256), true);
+  });
+
+  /* keyboard shortcuts for the map: left/right/up/down when a cell is focused */
+  grid.addEventListener("keydown", (event) => {
+    const cell = event.target.closest(".op-cell");
+    if (!cell) return;
+    const op = Number(cell.dataset.op);
+    let next = null;
+    if (event.key === "ArrowRight") next = op % 16 === 15 ? (op + 1) % 256 : op + 1;
+    if (event.key === "ArrowLeft") next = op % 16 === 0 ? (op + 255) % 256 : op - 1;
+    if (event.key === "ArrowDown") next = (op + 16) % 256;
+    if (event.key === "ArrowUp") next = (op + 240) % 256;
+    if (next === null) return;
+    event.preventDefault();
+    const nextCell = grid.querySelector(`.op-cell[data-op="${next}"]`);
+    if (nextCell) { nextCell.focus(); selectOpcode(next); }
+  });
+})();
+</script>
+</body>
+</html>
